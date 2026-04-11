@@ -2,9 +2,11 @@
 
 @theme {
   --color-abyss: #060d12;
-  --color-deep: #0b1820;
+  --color-deep: #101a1e;
   --color-coral: #ff6b6b;
-  --color-teal: #2dd4bf;
+  --color-teal: #8bc6b3;
+  --color-moss: #9ac8aa;
+  --color-sand: #d9c8a4;
   --color-ink: #f0ede8;
   --color-ink-muted: rgba(240, 237, 232, 0.55);
   --color-ink-faint: rgba(240, 237, 232, 0.25);
@@ -20,5 +22,12 @@
     background-color: var(--color-abyss);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    background-image:
+      radial-gradient(circle at top left, rgba(154, 200, 170, 0.08), transparent 32%),
+      radial-gradient(circle at top right, rgba(217, 200, 164, 0.08), transparent 28%);
+  }
+
+  img {
+    display: block;
   }
 }

@@ -12,7 +12,11 @@ export const Route = createRootRoute({
 		meta: [
 			{ charSet: "utf-8" },
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
-			{ title: "Coral Module" },
+			{ title: "Fathom" },
+			{
+				name: "description",
+				content: "Modern self-hosted reading room for books, manga, comics, and PDFs in Jellyfin.",
+			},
 		],
 	}),
 	component: RootComponent,
