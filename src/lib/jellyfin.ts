@@ -1,13 +1,16 @@
 import {
 	createClient,
+	downloadRemoteImage,
 	getItem,
 	getItemCounts,
 	getLibraryItems,
+	getRemoteImages,
 	getSystemInfo,
 	getUserById,
 	getVirtualFolders,
 	imageUrl,
 	type JellyfinItemCounts,
+	type JellyfinRemoteImageInfo,
 	type JellyfinSystemInfo,
 	type JellyfinVirtualFolder,
 } from "@get-coral/jellyfin"
@@ -47,6 +50,16 @@ export interface FathomDashboardData {
 	recentBooks: FathomBookCard[]
 	libraryBooks: FathomBookCard[]
 	collections: FathomBookCard[]
+}
+
+export interface FathomRemoteImageCandidate {
+	url: string
+	thumbnailUrl: string
+	providerName: string
+	width?: number
+	height?: number
+	communityRating?: number
+	voteCount?: number
 }
 
 function getRequiredSettings() {
@@ -144,4 +157,37 @@ export async function fetchBookDetail(itemId: string): Promise<FathomBookDetail>
 				type: person.Type,
 			})) ?? [],
 	}
+}
+
+function toRemoteImageCandidate(
+	image: JellyfinRemoteImageInfo,
+): FathomRemoteImageCandidate | null {
+	const url = image.Url?.trim()
+	if (!url) return null
+
+	return {
+		url,
+		thumbnailUrl: image.ThumbnailUrl?.trim() || url,
+		providerName: image.ProviderName?.trim() || "Unknown provider",
+		width: image.Width ?? undefined,
+		height: image.Height ?? undefined,
+		communityRating: image.CommunityRating ?? undefined,
+		voteCount: image.VoteCount ?? undefined,
+	}
+}
+
+export async function fetchRemoteCoverOptions(
+	itemId: string,
+): Promise<FathomRemoteImageCandidate[]> {
+	const client = createFathomClient()
+	const images = await getRemoteImages(client, itemId, "Primary")
+
+	return images
+		.map((image) => toRemoteImageCandidate(image))
+		.filter((image): image is FathomRemoteImageCandidate => image !== null)
+}
+
+export async function applyRemoteCover(itemId: string, imageUrl: string) {
+	const client = createFathomClient()
+	await downloadRemoteImage(client, itemId, imageUrl, "Primary")
 }

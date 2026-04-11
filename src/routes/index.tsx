@@ -1,7 +1,18 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
-import { fetchBookDetail, fetchDashboard, fetchSetupStatus } from "#/server/functions"
-import type { FathomBookCard, FathomBookDetail } from "#/lib/jellyfin"
+import {
+	applyRemoteCover,
+	fetchBookDetail,
+	fetchDashboard,
+	fetchRemoteCoverOptions,
+	fetchSetupStatus,
+} from "#/server/functions"
+import type {
+	FathomBookCard,
+	FathomBookDetail,
+	FathomDashboardData,
+	FathomRemoteImageCandidate,
+} from "#/lib/jellyfin"
 
 export const Route = createFileRoute("/")({
 	loader: async () => {
@@ -17,20 +28,33 @@ export const Route = createFileRoute("/")({
 })
 
 function Home() {
-	const dashboard = Route.useLoaderData()
+	const initialDashboard = Route.useLoaderData()
+	const [dashboard, setDashboard] = useState<FathomDashboardData>(initialDashboard)
 	const firstBookId =
-		dashboard.featured?.id ??
-		dashboard.recentBooks[0]?.id ??
-		dashboard.libraryBooks[0]?.id ??
+		initialDashboard.featured?.id ??
+		initialDashboard.recentBooks[0]?.id ??
+		initialDashboard.libraryBooks[0]?.id ??
 		null
 	const [selectedItemId, setSelectedItemId] = useState<string | null>(firstBookId)
 	const [selectedDetail, setSelectedDetail] = useState<FathomBookDetail | null>(null)
 	const [detailLoading, setDetailLoading] = useState(false)
 	const [detailError, setDetailError] = useState<string | null>(null)
+	const [remoteImages, setRemoteImages] = useState<FathomRemoteImageCandidate[]>([])
+	const [remoteImagesLoading, setRemoteImagesLoading] = useState(false)
+	const [remoteImagesError, setRemoteImagesError] = useState<string | null>(null)
+	const [coverApplying, setCoverApplying] = useState<string | null>(null)
+
+	async function reloadDashboard() {
+		const nextDashboard = await fetchDashboard()
+		setDashboard(nextDashboard)
+		return nextDashboard
+	}
 
 	useEffect(() => {
 		if (!selectedItemId) {
 			setSelectedDetail(null)
+			setRemoteImages([])
+			setRemoteImagesError(null)
 			return
 		}
 
@@ -41,10 +65,12 @@ function Home() {
 			try {
 				setDetailLoading(true)
 				setDetailError(null)
-				const detail = await fetchBookDetail({ data: { itemId } })
-				if (!cancelled) {
-					setSelectedDetail(detail)
-				}
+					const detail = await fetchBookDetail({ data: { itemId } })
+					if (!cancelled) {
+						setSelectedDetail(detail)
+						setRemoteImages([])
+						setRemoteImagesError(null)
+					}
 			} catch (loadError) {
 				if (!cancelled) {
 					setDetailError(
@@ -64,6 +90,39 @@ function Home() {
 			cancelled = true
 		}
 	}, [selectedItemId])
+
+	async function handleFindCoverOptions(itemId: string) {
+		try {
+			setRemoteImagesLoading(true)
+			setRemoteImagesError(null)
+			const images = await fetchRemoteCoverOptions({ data: { itemId } })
+			setRemoteImages(images)
+		} catch (loadError) {
+			setRemoteImagesError(
+				loadError instanceof Error ? loadError.message : "Could not fetch remote cover options.",
+			)
+		} finally {
+			setRemoteImagesLoading(false)
+		}
+	}
+
+	async function handleApplyRemoteCover(itemId: string, imageUrl: string) {
+		try {
+			setCoverApplying(imageUrl)
+			setRemoteImagesError(null)
+			await applyRemoteCover({ data: { itemId, imageUrl } })
+			await reloadDashboard()
+			const detail = await fetchBookDetail({ data: { itemId } })
+			setSelectedDetail(detail)
+			setRemoteImages([])
+		} catch (applyError) {
+			setRemoteImagesError(
+				applyError instanceof Error ? applyError.message : "Could not apply this cover in Jellyfin.",
+			)
+		} finally {
+			setCoverApplying(null)
+		}
+	}
 
 	const stats = [
 		{ label: "Books", value: dashboard.itemCounts.BookCount ?? dashboard.libraryBooks.length },
@@ -231,6 +290,70 @@ function Home() {
 											No genres yet
 										</span>
 									)}
+								</div>
+
+								<div className="mt-6 rounded-3xl border border-white/10 bg-black/15 p-4">
+									<div className="flex flex-wrap items-center justify-between gap-3">
+										<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">
+											Cover actions
+										</p>
+										<button
+											type="button"
+											onClick={() => handleFindCoverOptions(selectedDetail.id)}
+											disabled={remoteImagesLoading || coverApplying !== null}
+											className="rounded-full bg-moss/12 px-3 py-2 text-xs font-semibold text-moss disabled:opacity-60"
+										>
+											{remoteImagesLoading
+												? "Finding covers…"
+												: selectedDetail.coverUrl
+													? "Find better cover"
+													: "Find cover"}
+										</button>
+									</div>
+									{remoteImagesError ? (
+										<div className="mt-4 rounded-2xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">
+											{remoteImagesError}
+										</div>
+									) : null}
+									{remoteImages.length > 0 ? (
+										<div className="mt-4 grid gap-3 sm:grid-cols-2">
+											{remoteImages.slice(0, 6).map((image) => (
+												<div
+													key={image.url}
+													className="overflow-hidden rounded-3xl border border-white/10 bg-black/20"
+												>
+													<img
+														src={image.thumbnailUrl}
+														alt={`${selectedDetail.title} from ${image.providerName}`}
+														className="aspect-[4/5] w-full object-cover"
+													/>
+													<div className="p-3">
+														<p className="text-sm font-semibold text-ink">
+															{image.providerName}
+														</p>
+														<p className="mt-1 text-xs text-ink-faint">
+															{image.width && image.height
+																? `${image.width} × ${image.height}`
+																: "Unknown size"}
+															{image.communityRating
+																? ` · ${image.communityRating.toFixed(1)} rating`
+																: ""}
+														</p>
+														<button
+															type="button"
+															onClick={() =>
+																handleApplyRemoteCover(selectedDetail.id, image.url)
+															}
+															disabled={coverApplying !== null}
+															className="mt-3 rounded-full bg-moss px-4 py-2 text-xs font-semibold text-abyss disabled:opacity-60"
+														>
+															{coverApplying === image.url ? "Applying…" : "Use this cover"}
+														</button>
+													</div>
+												</div>
+											))}
+										</div>
+									) : null}
 								</div>
 
 								<div className="mt-6 rounded-3xl border border-white/10 bg-black/15 p-4">

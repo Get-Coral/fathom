@@ -43,3 +43,18 @@ export const fetchBookDetail = createServerFn({ method: "GET" })
 		const { fetchBookDetail: fetchDetail } = await import("../lib/jellyfin")
 		return fetchDetail(data.itemId)
 	})
+
+export const fetchRemoteCoverOptions = createServerFn({ method: "GET" })
+	.inputValidator((input: { itemId: string }) => input)
+	.handler(async ({ data }) => {
+		const { fetchRemoteCoverOptions: fetchOptions } = await import("../lib/jellyfin")
+		return fetchOptions(data.itemId)
+	})
+
+export const applyRemoteCover = createServerFn({ method: "POST" })
+	.inputValidator((input: { itemId: string; imageUrl: string }) => input)
+	.handler(async ({ data }) => {
+		const { applyRemoteCover: applyCover } = await import("../lib/jellyfin")
+		await applyCover(data.itemId, data.imageUrl)
+		return { ok: true }
+	})
