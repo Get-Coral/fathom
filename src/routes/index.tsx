@@ -1,135 +1,153 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import type {
+	FathomBookCard,
+	FathomBookDetail,
+	FathomDashboardData,
+	FathomRemoteImageCandidate,
+} from "#/lib/jellyfin";
 import {
 	applyRemoteCover,
 	fetchBookDetail,
 	fetchDashboard,
 	fetchRemoteCoverOptions,
 	fetchSetupStatus,
-} from "#/server/functions"
-import type {
-	FathomBookCard,
-	FathomBookDetail,
-	FathomDashboardData,
-	FathomRemoteImageCandidate,
-} from "#/lib/jellyfin"
+} from "#/server/functions";
 
 export const Route = createFileRoute("/")({
 	loader: async () => {
-		const setupStatus = await fetchSetupStatus()
+		const setupStatus = await fetchSetupStatus();
 
 		if (!setupStatus?.configured) {
-			throw redirect({ to: "/setup" })
+			throw redirect({ to: "/setup" });
 		}
 
-		return fetchDashboard()
+		return fetchDashboard();
 	},
 	component: Home,
-})
+});
 
 function Home() {
-	const initialDashboard = Route.useLoaderData()
-	const [dashboard, setDashboard] = useState<FathomDashboardData>(initialDashboard)
+	const initialDashboard = Route.useLoaderData();
+	const [dashboard, setDashboard] =
+		useState<FathomDashboardData>(initialDashboard);
 	const firstBookId =
 		initialDashboard.featured?.id ??
 		initialDashboard.recentBooks[0]?.id ??
 		initialDashboard.libraryBooks[0]?.id ??
-		null
-	const [selectedItemId, setSelectedItemId] = useState<string | null>(firstBookId)
-	const [selectedDetail, setSelectedDetail] = useState<FathomBookDetail | null>(null)
-	const [detailLoading, setDetailLoading] = useState(false)
-	const [detailError, setDetailError] = useState<string | null>(null)
-	const [remoteImages, setRemoteImages] = useState<FathomRemoteImageCandidate[]>([])
-	const [remoteImagesLoading, setRemoteImagesLoading] = useState(false)
-	const [remoteImagesError, setRemoteImagesError] = useState<string | null>(null)
-	const [coverApplying, setCoverApplying] = useState<string | null>(null)
+		null;
+	const [selectedItemId, setSelectedItemId] = useState<string | null>(
+		firstBookId,
+	);
+	const [selectedDetail, setSelectedDetail] = useState<FathomBookDetail | null>(
+		null,
+	);
+	const [detailLoading, setDetailLoading] = useState(false);
+	const [detailError, setDetailError] = useState<string | null>(null);
+	const [remoteImages, setRemoteImages] = useState<
+		FathomRemoteImageCandidate[]
+	>([]);
+	const [remoteImagesLoading, setRemoteImagesLoading] = useState(false);
+	const [remoteImagesError, setRemoteImagesError] = useState<string | null>(
+		null,
+	);
+	const [coverApplying, setCoverApplying] = useState<string | null>(null);
 
 	async function reloadDashboard() {
-		const nextDashboard = await fetchDashboard()
-		setDashboard(nextDashboard)
-		return nextDashboard
+		const nextDashboard = await fetchDashboard();
+		setDashboard(nextDashboard);
+		return nextDashboard;
 	}
 
 	useEffect(() => {
 		if (!selectedItemId) {
-			setSelectedDetail(null)
-			setRemoteImages([])
-			setRemoteImagesError(null)
-			return
+			setSelectedDetail(null);
+			setRemoteImages([]);
+			setRemoteImagesError(null);
+			return;
 		}
 
-		const itemId = selectedItemId
-		let cancelled = false
+		const itemId = selectedItemId;
+		let cancelled = false;
 
 		async function loadDetail() {
 			try {
-				setDetailLoading(true)
-				setDetailError(null)
-					const detail = await fetchBookDetail({ data: { itemId } })
-					if (!cancelled) {
-						setSelectedDetail(detail)
-						setRemoteImages([])
-						setRemoteImagesError(null)
-					}
+				setDetailLoading(true);
+				setDetailError(null);
+				const detail = await fetchBookDetail({ data: { itemId } });
+				if (!cancelled) {
+					setSelectedDetail(detail);
+					setRemoteImages([]);
+					setRemoteImagesError(null);
+				}
 			} catch (loadError) {
 				if (!cancelled) {
 					setDetailError(
-						loadError instanceof Error ? loadError.message : "Could not load the title details.",
-					)
+						loadError instanceof Error
+							? loadError.message
+							: "Could not load the title details.",
+					);
 				}
 			} finally {
 				if (!cancelled) {
-					setDetailLoading(false)
+					setDetailLoading(false);
 				}
 			}
 		}
 
-		void loadDetail()
+		void loadDetail();
 
 		return () => {
-			cancelled = true
-		}
-	}, [selectedItemId])
+			cancelled = true;
+		};
+	}, [selectedItemId]);
 
 	async function handleFindCoverOptions(itemId: string) {
 		try {
-			setRemoteImagesLoading(true)
-			setRemoteImagesError(null)
-			const images = await fetchRemoteCoverOptions({ data: { itemId } })
-			setRemoteImages(images)
+			setRemoteImagesLoading(true);
+			setRemoteImagesError(null);
+			const images = await fetchRemoteCoverOptions({ data: { itemId } });
+			setRemoteImages(images);
 		} catch (loadError) {
 			setRemoteImagesError(
-				loadError instanceof Error ? loadError.message : "Could not fetch remote cover options.",
-			)
+				loadError instanceof Error
+					? loadError.message
+					: "Could not fetch remote cover options.",
+			);
 		} finally {
-			setRemoteImagesLoading(false)
+			setRemoteImagesLoading(false);
 		}
 	}
 
 	async function handleApplyRemoteCover(itemId: string, imageUrl: string) {
 		try {
-			setCoverApplying(imageUrl)
-			setRemoteImagesError(null)
-			await applyRemoteCover({ data: { itemId, imageUrl } })
-			await reloadDashboard()
-			const detail = await fetchBookDetail({ data: { itemId } })
-			setSelectedDetail(detail)
-			setRemoteImages([])
+			setCoverApplying(imageUrl);
+			setRemoteImagesError(null);
+			await applyRemoteCover({ data: { itemId, imageUrl } });
+			await reloadDashboard();
+			const detail = await fetchBookDetail({ data: { itemId } });
+			setSelectedDetail(detail);
+			setRemoteImages([]);
 		} catch (applyError) {
 			setRemoteImagesError(
-				applyError instanceof Error ? applyError.message : "Could not apply this cover in Jellyfin.",
-			)
+				applyError instanceof Error
+					? applyError.message
+					: "Could not apply this cover in Jellyfin.",
+			);
 		} finally {
-			setCoverApplying(null)
+			setCoverApplying(null);
 		}
 	}
 
 	const stats = [
-		{ label: "Books", value: dashboard.itemCounts.BookCount ?? dashboard.libraryBooks.length },
+		{
+			label: "Books",
+			value: dashboard.itemCounts.BookCount ?? dashboard.libraryBooks.length,
+		},
 		{ label: "Collections", value: dashboard.collections.length },
 		{ label: "Libraries", value: dashboard.virtualFolders.length },
 		{ label: "Server", value: dashboard.systemInfo.ServerName },
-	]
+	];
 
 	return (
 		<main className="min-h-screen bg-abyss px-6 py-8 text-ink sm:px-8 xl:px-12 2xl:px-16">
@@ -143,9 +161,9 @@ function Home() {
 							Your reading room from Jellyfin
 						</h1>
 						<p className="mt-4 max-w-3xl text-lg leading-8 text-ink-muted">
-							Browse books, manga, comics, and reading collections without the usual
-							self-hosted rough edges. Fathom is the calm, cover-first layer for your
-							NAS library.
+							Browse books, manga, comics, and reading collections without the
+							usual self-hosted rough edges. Fathom is the calm, cover-first
+							layer for your NAS library.
 						</p>
 					</div>
 
@@ -165,8 +183,12 @@ function Home() {
 							key={stat.label}
 							className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-6"
 						>
-							<p className="text-sm uppercase tracking-[0.25em] text-ink-faint">{stat.label}</p>
-							<p className="mt-4 font-display text-4xl text-ink">{stat.value}</p>
+							<p className="text-sm uppercase tracking-[0.25em] text-ink-faint">
+								{stat.label}
+							</p>
+							<p className="mt-4 font-display text-4xl text-ink">
+								{stat.value}
+							</p>
 						</section>
 					))}
 				</div>
@@ -175,7 +197,9 @@ function Home() {
 					<section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 xl:p-7">
 						<div className="flex items-center justify-between gap-4">
 							<div>
-								<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">Featured</p>
+								<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">
+									Featured
+								</p>
 								<h2 className="mt-2 font-display text-3xl">Start here</h2>
 							</div>
 							<div className="rounded-full bg-moss/12 px-3 py-1 text-sm text-moss">
@@ -208,10 +232,13 @@ function Home() {
 									</h3>
 									<p className="mt-3 text-sm uppercase tracking-[0.25em] text-ink-faint">
 										{dashboard.featured.type}
-										{dashboard.featured.year ? ` · ${dashboard.featured.year}` : ""}
+										{dashboard.featured.year
+											? ` · ${dashboard.featured.year}`
+											: ""}
 									</p>
 									<p className="mt-5 max-w-2xl text-base leading-8 text-ink-muted">
-										{dashboard.featured.overview || "No overview has been added for this title yet."}
+										{dashboard.featured.overview ||
+											"No overview has been added for this title yet."}
 									</p>
 									<div className="mt-5 flex flex-wrap gap-2">
 										{dashboard.featured.genres.length > 0 ? (
@@ -239,7 +266,9 @@ function Home() {
 					</section>
 
 					<aside className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 xl:p-7">
-						<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">Reading detail</p>
+						<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">
+							Reading detail
+						</p>
 						{detailLoading ? (
 							<div className="mt-6 space-y-4 animate-pulse">
 								<div className="h-64 rounded-3xl bg-white/5" />
@@ -265,14 +294,19 @@ function Home() {
 										</div>
 									)}
 								</div>
-								<h2 className="mt-6 font-display text-3xl text-ink">{selectedDetail.title}</h2>
+								<h2 className="mt-6 font-display text-3xl text-ink">
+									{selectedDetail.title}
+								</h2>
 								<p className="mt-2 text-sm uppercase tracking-[0.25em] text-ink-faint">
 									{selectedDetail.type}
 									{selectedDetail.year ? ` · ${selectedDetail.year}` : ""}
-									{selectedDetail.publisher ? ` · ${selectedDetail.publisher}` : ""}
+									{selectedDetail.publisher
+										? ` · ${selectedDetail.publisher}`
+										: ""}
 								</p>
 								<p className="mt-5 text-sm leading-8 text-ink-muted">
-									{selectedDetail.overview || "No overview available for this title yet."}
+									{selectedDetail.overview ||
+										"No overview available for this title yet."}
 								</p>
 
 								<div className="mt-5 flex flex-wrap gap-2">
@@ -342,12 +376,17 @@ function Home() {
 														<button
 															type="button"
 															onClick={() =>
-																handleApplyRemoteCover(selectedDetail.id, image.url)
+																handleApplyRemoteCover(
+																	selectedDetail.id,
+																	image.url,
+																)
 															}
 															disabled={coverApplying !== null}
 															className="mt-3 rounded-full bg-moss px-4 py-2 text-xs font-semibold text-abyss disabled:opacity-60"
 														>
-															{coverApplying === image.url ? "Applying…" : "Use this cover"}
+															{coverApplying === image.url
+																? "Applying…"
+																: "Use this cover"}
 														</button>
 													</div>
 												</div>
@@ -357,7 +396,9 @@ function Home() {
 								</div>
 
 								<div className="mt-6 rounded-3xl border border-white/10 bg-black/15 p-4">
-									<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">Contributors</p>
+									<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">
+										Contributors
+									</p>
 									<div className="mt-3 space-y-2">
 										{selectedDetail.people.length > 0 ? (
 											selectedDetail.people.slice(0, 6).map((person) => (
@@ -366,7 +407,9 @@ function Home() {
 													className="flex items-center justify-between gap-3 text-sm text-ink-muted"
 												>
 													<span className="text-ink">{person.name}</span>
-													<span>{person.role || person.type || "Contributor"}</span>
+													<span>
+														{person.role || person.type || "Contributor"}
+													</span>
 												</div>
 											))
 										) : (
@@ -412,7 +455,9 @@ function Home() {
 				<section className="mt-6 rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 xl:p-7">
 					<div className="flex items-center justify-between gap-4">
 						<div>
-							<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">Libraries</p>
+							<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">
+								Libraries
+							</p>
 							<h2 className="mt-2 font-display text-3xl">Virtual folders</h2>
 						</div>
 						<div className="rounded-full bg-moss/12 px-3 py-1 text-sm text-moss">
@@ -426,7 +471,9 @@ function Home() {
 								key={folder.ItemId}
 								className="rounded-3xl border border-white/10 bg-black/15 p-5"
 							>
-								<h3 className="text-xl font-semibold text-ink">{folder.Name}</h3>
+								<h3 className="text-xl font-semibold text-ink">
+									{folder.Name}
+								</h3>
 								<p className="mt-2 text-sm uppercase tracking-[0.25em] text-ink-faint">
 									{folder.CollectionType || "Mixed"}
 								</p>
@@ -446,21 +493,23 @@ function Home() {
 				</section>
 			</div>
 		</main>
-	)
+	);
 }
 
 function ShelfSection(props: {
-	title: string
-	subtitle: string
-	items: FathomBookCard[]
-	selectedItemId: string | null
-	onSelect: (itemId: string) => void
+	title: string;
+	subtitle: string;
+	items: FathomBookCard[];
+	selectedItemId: string | null;
+	onSelect: (itemId: string) => void;
 }) {
 	return (
 		<section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 xl:p-7">
 			<div className="flex items-center justify-between gap-4">
 				<div>
-					<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">{props.title}</p>
+					<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">
+						{props.title}
+					</p>
 					<h2 className="mt-2 font-display text-3xl">{props.subtitle}</h2>
 				</div>
 				<div className="rounded-full bg-white/[0.05] px-3 py-1 text-sm text-ink-muted">
@@ -495,7 +544,9 @@ function ShelfSection(props: {
 								)}
 							</div>
 							<div className="p-4">
-								<h3 className="line-clamp-2 text-lg font-semibold text-ink">{item.title}</h3>
+								<h3 className="line-clamp-2 text-lg font-semibold text-ink">
+									{item.title}
+								</h3>
 								<p className="mt-2 text-xs uppercase tracking-[0.25em] text-ink-faint">
 									{item.type}
 									{item.year ? ` · ${item.year}` : ""}
@@ -513,5 +564,5 @@ function ShelfSection(props: {
 				)}
 			</div>
 		</section>
-	)
+	);
 }

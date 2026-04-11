@@ -13,67 +13,69 @@ import {
 	type JellyfinRemoteImageInfo,
 	type JellyfinSystemInfo,
 	type JellyfinVirtualFolder,
-} from "@get-coral/jellyfin"
-import { getEffectiveJellyfinSettings } from "./config-store"
+} from "@get-coral/jellyfin";
+import { getEffectiveJellyfinSettings } from "./config-store";
 
 export interface FathomUserSummary {
-	id: string
-	name: string
+	id: string;
+	name: string;
 }
 
 export interface FathomBookCard {
-	id: string
-	title: string
-	type: string
-	year?: number
-	overview: string
-	genres: string[]
-	coverUrl?: string
+	id: string;
+	title: string;
+	type: string;
+	year?: number;
+	overview: string;
+	genres: string[];
+	coverUrl?: string;
 }
 
 export interface FathomBookDetail extends FathomBookCard {
-	publisher?: string
+	publisher?: string;
 	people: Array<{
-		id: string
-		name: string
-		role?: string
-		type?: string
-	}>
+		id: string;
+		name: string;
+		role?: string;
+		type?: string;
+	}>;
 }
 
 export interface FathomDashboardData {
-	systemInfo: JellyfinSystemInfo
-	itemCounts: JellyfinItemCounts
-	virtualFolders: JellyfinVirtualFolder[]
-	currentUser: FathomUserSummary
-	featured: FathomBookCard | null
-	recentBooks: FathomBookCard[]
-	libraryBooks: FathomBookCard[]
-	collections: FathomBookCard[]
+	systemInfo: JellyfinSystemInfo;
+	itemCounts: JellyfinItemCounts;
+	virtualFolders: JellyfinVirtualFolder[];
+	currentUser: FathomUserSummary;
+	featured: FathomBookCard | null;
+	recentBooks: FathomBookCard[];
+	libraryBooks: FathomBookCard[];
+	collections: FathomBookCard[];
 }
 
 export interface FathomRemoteImageCandidate {
-	url: string
-	thumbnailUrl: string
-	providerName: string
-	width?: number
-	height?: number
-	communityRating?: number
-	voteCount?: number
+	url: string;
+	thumbnailUrl: string;
+	providerName: string;
+	width?: number;
+	height?: number;
+	communityRating?: number;
+	voteCount?: number;
 }
 
 function getRequiredSettings() {
-	const settings = getEffectiveJellyfinSettings()
+	const settings = getEffectiveJellyfinSettings();
 
 	if (!settings) {
-		throw new Error("Fathom is not configured yet. Visit /setup to connect Jellyfin.")
+		throw new Error(
+			"Fathom is not configured yet. Visit /setup to connect Jellyfin.",
+		);
 	}
 
-	return settings
+	return settings;
 }
 
 function createFathomClient() {
-	const settings = getRequiredSettings()
+	const settings = getRequiredSettings();
 
 	return createClient({
 		url: settings.url,
@@ -84,7 +86,7 @@ function createFathomClient() {
 		clientName: "Fathom",
 		deviceName: "Fathom Web",
 		deviceId: "fathom-web",
-	})
+	});
 }
 
 function toBookCard(
@@ -98,34 +100,43 @@ function toBookCard(
 		year: item.ProductionYear,
 		overview: item.Overview?.trim() ?? "",
 		genres: item.GenreItems?.map((genre) => genre.Name) ?? [],
-		coverUrl: item.ImageTags?.Primary ? imageUrl(client, item.Id, "Primary", 520) : undefined,
-	}
+		coverUrl: item.ImageTags?.Primary
+			? imageUrl(client, item.Id, "Primary", 520)
+			: undefined,
+	};
 }
 
 export async function fetchDashboardData(): Promise<FathomDashboardData> {
-	const client = createFathomClient()
-	const [systemInfo, itemCounts, virtualFolders, currentUser, recentBooks, libraryBooks, collections] =
-		await Promise.all([
-			getSystemInfo(client),
-			getItemCounts(client),
-			getVirtualFolders(client),
-			getUserById(client, client.config.userId),
-			getLibraryItems(client, "Book", {
-				limit: 18,
-				sortBy: "DateCreated",
-				sortOrder: "Descending",
-			}),
-			getLibraryItems(client, "Book", {
-				limit: 18,
-				sortBy: "SortName",
-				sortOrder: "Ascending",
-			}),
-			getLibraryItems(client, "BoxSet", {
-				limit: 12,
-				sortBy: "SortName",
-				sortOrder: "Ascending",
-			}),
-		])
+	const client = createFathomClient();
+	const [
+		systemInfo,
+		itemCounts,
+		virtualFolders,
+		currentUser,
+		recentBooks,
+		libraryBooks,
+		collections,
+	] = await Promise.all([
+		getSystemInfo(client),
+		getItemCounts(client),
+		getVirtualFolders(client),
+		getUserById(client, client.config.userId),
+		getLibraryItems(client, "Book", {
+			limit: 18,
+			sortBy: "DateCreated",
+			sortOrder: "Descending",
+		}),
+		getLibraryItems(client, "Book", {
+			limit: 18,
+			sortBy: "SortName",
+			sortOrder: "Ascending",
+		}),
+		getLibraryItems(client, "BoxSet", {
+			limit: 12,
+			sortBy: "SortName",
+			sortOrder: "Ascending",
+		}),
+	]);
 
 	return {
 		systemInfo,
@@ -135,16 +146,20 @@ export async function fetchDashboardData(): Promise<FathomDashboardData> {
 			id: currentUser.Id,
 			name: currentUser.Name,
 		},
-		featured: recentBooks.Items[0] ? toBookCard(client, recentBooks.Items[0]) : null,
+		featured: recentBooks.Items[0]
+			? toBookCard(client, recentBooks.Items[0])
+			: null,
 		recentBooks: recentBooks.Items.map((item) => toBookCard(client, item)),
 		libraryBooks: libraryBooks.Items.map((item) => toBookCard(client, item)),
 		collections: collections.Items.map((item) => toBookCard(client, item)),
-	}
+	};
 }
 
-export async function fetchBookDetail(itemId: string): Promise<FathomBookDetail> {
-	const client = createFathomClient()
-	const item = await getItem(client, itemId)
+export async function fetchBookDetail(
+	itemId: string,
+): Promise<FathomBookDetail> {
+	const client = createFathomClient();
+	const item = await getItem(client, itemId);
 
 	return {
 		...toBookCard(client, item),
@@ -156,14 +171,14 @@ export async function fetchBookDetail(itemId: string): Promise<FathomBookDetail>
 				role: person.Role,
 				type: person.Type,
 			})) ?? [],
-	}
+	};
 }
 
 function toRemoteImageCandidate(
 	image: JellyfinRemoteImageInfo,
 ): FathomRemoteImageCandidate | null {
-	const url = image.Url?.trim()
-	if (!url) return null
+	const url = image.Url?.trim();
+	if (!url) return null;
 
 	return {
 		url,
@@ -173,21 +188,21 @@ function toRemoteImageCandidate(
 		height: image.Height ?? undefined,
 		communityRating: image.CommunityRating ?? undefined,
 		voteCount: image.VoteCount ?? undefined,
-	}
+	};
 }
 
 export async function fetchRemoteCoverOptions(
 	itemId: string,
 ): Promise<FathomRemoteImageCandidate[]> {
-	const client = createFathomClient()
-	const images = await getRemoteImages(client, itemId, "Primary")
+	const client = createFathomClient();
+	const images = await getRemoteImages(client, itemId, "Primary");
 
 	return images
 		.map((image) => toRemoteImageCandidate(image))
-		.filter((image): image is FathomRemoteImageCandidate => image !== null)
+		.filter((image): image is FathomRemoteImageCandidate => image !== null);
 }
 
 export async function applyRemoteCover(itemId: string, imageUrl: string) {
-	const client = createFathomClient()
-	await downloadRemoteImage(client, itemId, imageUrl, "Primary")
+	const client = createFathomClient();
+	await downloadRemoteImage(client, itemId, imageUrl, "Primary");
 }

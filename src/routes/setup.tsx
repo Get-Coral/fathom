@@ -1,27 +1,27 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
-import { fetchSetupStatus, saveSetupConfiguration } from "#/server/functions"
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { fetchSetupStatus, saveSetupConfiguration } from "#/server/functions";
 
 export const Route = createFileRoute("/setup")({
 	loader: async () => fetchSetupStatus(),
 	component: SetupPage,
-})
+});
 
 function SetupPage() {
-	const navigate = useNavigate()
-	const summary = Route.useLoaderData()
-	const [url, setUrl] = useState(summary.current.url)
-	const [apiKey, setApiKey] = useState(summary.current.apiKey)
-	const [userId, setUserId] = useState(summary.current.userId)
-	const [username, setUsername] = useState(summary.current.username)
-	const [password, setPassword] = useState("")
-	const [error, setError] = useState<string | null>(null)
-	const [saving, setSaving] = useState(false)
+	const navigate = useNavigate();
+	const summary = Route.useLoaderData();
+	const [url, setUrl] = useState(summary.current.url);
+	const [apiKey, setApiKey] = useState(summary.current.apiKey);
+	const [userId, setUserId] = useState(summary.current.userId);
+	const [username, setUsername] = useState(summary.current.username);
+	const [password, setPassword] = useState("");
+	const [error, setError] = useState<string | null>(null);
+	const [saving, setSaving] = useState(false);
 
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault()
-		setSaving(true)
-		setError(null)
+		event.preventDefault();
+		setSaving(true);
+		setError(null);
 
 		try {
 			await saveSetupConfiguration({
@@ -32,16 +32,16 @@ function SetupPage() {
 					username,
 					password,
 				},
-			})
-			await navigate({ to: "/" })
+			});
+			await navigate({ to: "/" });
 		} catch (submitError) {
 			setError(
 				submitError instanceof Error
 					? submitError.message
 					: "Fathom could not save your Jellyfin settings.",
-			)
+			);
 		} finally {
-			setSaving(false)
+			setSaving(false);
 		}
 	}
 
@@ -53,13 +53,15 @@ function SetupPage() {
 						Fathom Setup
 					</p>
 					<h1 className="mt-4 font-display text-5xl leading-none">
-						{summary.configured ? "Edit reading connection" : "Connect Fathom to Jellyfin"}
+						{summary.configured
+							? "Edit reading connection"
+							: "Connect Fathom to Jellyfin"}
 					</h1>
 					<p className="mt-6 text-lg leading-8 text-ink-muted">
-						Fathom follows the same local-first setup model as Aurora and Librarian.
-						If `JELLYFIN_*` env vars are already present, the app can skip homepage
-						onboarding while this page still lets you inspect the active values and save a
-						local SQLite override.
+						Fathom follows the same local-first setup model as Aurora and
+						Librarian. If `JELLYFIN_*` env vars are already present, the app can
+						skip homepage onboarding while this page still lets you inspect the
+						active values and save a local SQLite override.
 					</p>
 
 					<div className="mt-10 space-y-4">
@@ -88,7 +90,10 @@ function SetupPage() {
 				<section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
 					<form className="space-y-5" onSubmit={handleSubmit}>
 						<div>
-							<label htmlFor="setup-url" className="mb-2 block text-sm font-medium text-ink">
+							<label
+								htmlFor="setup-url"
+								className="mb-2 block text-sm font-medium text-ink"
+							>
 								Jellyfin URL
 							</label>
 							<input
@@ -97,12 +102,14 @@ function SetupPage() {
 								value={url}
 								onChange={(event) => setUrl(event.target.value)}
 								placeholder="http://localhost:8096"
-								autoFocus
 							/>
 						</div>
 
 						<div>
-							<label htmlFor="setup-api-key" className="mb-2 block text-sm font-medium text-ink">
+							<label
+								htmlFor="setup-api-key"
+								className="mb-2 block text-sm font-medium text-ink"
+							>
 								API key
 							</label>
 							<input
@@ -115,7 +122,10 @@ function SetupPage() {
 						</div>
 
 						<div>
-							<label htmlFor="setup-user-id" className="mb-2 block text-sm font-medium text-ink">
+							<label
+								htmlFor="setup-user-id"
+								className="mb-2 block text-sm font-medium text-ink"
+							>
 								User ID
 							</label>
 							<input
@@ -184,5 +194,5 @@ function SetupPage() {
 				</section>
 			</div>
 		</main>
-	)
+	);
 }

@@ -1,11 +1,11 @@
 import {
+	createRootRoute,
 	HeadContent,
 	Outlet,
 	Scripts,
-	createRootRoute,
-} from "@tanstack/react-router"
-import type { ReactNode } from "react"
-import "#/styles.css"
+} from "@tanstack/react-router";
+import type { ReactNode } from "react";
+import "#/styles.css";
 
 export const Route = createRootRoute({
 	head: () => ({
@@ -15,19 +15,20 @@ export const Route = createRootRoute({
 			{ title: "Fathom" },
 			{
 				name: "description",
-				content: "Modern self-hosted reading room for books, manga, comics, and PDFs in Jellyfin.",
+				content:
+					"Modern self-hosted reading room for books, manga, comics, and PDFs in Jellyfin.",
 			},
 		],
 	}),
 	component: RootComponent,
-})
+});
 
 function RootComponent() {
 	return (
 		<RootDocument>
 			<Outlet />
 		</RootDocument>
-	)
+	);
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
@@ -41,5 +42,5 @@ function RootDocument({ children }: { children: ReactNode }) {
 				<Scripts />
 			</body>
 		</html>
-	)
+	);
 }

@@ -1,27 +1,27 @@
-import fs from "node:fs"
-import path from "node:path"
-import { DatabaseSync } from "node:sqlite"
-import { createClient, getUserById } from "@get-coral/jellyfin"
+import fs from "node:fs";
+import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { createClient, getUserById } from "@get-coral/jellyfin";
 
 export interface JellyfinSettings {
-	url: string
-	apiKey: string
-	userId: string
-	username?: string
-	password?: string
+	url: string;
+	apiKey: string;
+	userId: string;
+	username?: string;
+	password?: string;
 }
 
-type SettingsSource = "database" | "env" | "merged" | "missing"
+type SettingsSource = "database" | "env" | "merged" | "missing";
 
 function getDataDirectory() {
-	return process.env["FATHOM_DATA_DIR"] ?? path.join(process.cwd(), "data")
+	return process.env.FATHOM_DATA_DIR ?? path.join(process.cwd(), "data");
 }
 
 function getDatabasePath() {
-	return path.join(getDataDirectory(), "fathom.sqlite")
+	return path.join(getDataDirectory(), "fathom.sqlite");
 }
 
-let database: DatabaseSync | null = null
+let database: DatabaseSync | null = null;
 
 const CREATE_TABLE_SQL = [
 	"CREATE TABLE IF NOT EXISTS app_settings (",
@@ -29,22 +29,24 @@ const CREATE_TABLE_SQL = [
 	"  value TEXT NOT NULL,",
 	"  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
 	");",
-].join("\n")
+].join("\n");
 
 function getDatabase() {
-	if (database) return database
+	if (database) return database;
 
-	fs.mkdirSync(getDataDirectory(), { recursive: true })
-	database = new DatabaseSync(getDatabasePath())
-	database.exec(CREATE_TABLE_SQL)
+	fs.mkdirSync(getDataDirectory(), { recursive: true });
+	database = new DatabaseSync(getDatabasePath());
+	database.exec(CREATE_TABLE_SQL);
 
-	return database
+	return database;
 }
 
 function getSetting(key: string) {
-	const statement = getDatabase().prepare("SELECT value FROM app_settings WHERE key = ?")
-	const row = statement.get(key) as { value?: string } | undefined
-	return row?.value
+	const statement = getDatabase().prepare(
+		"SELECT value FROM app_settings WHERE key = ?",
+	);
+	const row = statement.get(key) as { value?: string } | undefined;
+	return row?.value;
 }
 
 const UPSERT_SQL = [
@@ -53,40 +55,44 @@ const UPSERT_SQL = [
 	"ON CONFLICT(key) DO UPDATE SET",
 	"  value = excluded.value,",
 	"  updated_at = CURRENT_TIMESTAMP",
-].join("\n")
+].join("\n");
 
 function setSetting(key: string, value: string) {
-	const statement = getDatabase().prepare(UPSERT_SQL)
-	statement.run(key, value)
+	const statement = getDatabase().prepare(UPSERT_SQL);
+	statement.run(key, value);
 }
 
 function normalizeValue(value?: string) {
-	const trimmed = value?.trim()
-	return trimmed ? trimmed : undefined
+	const trimmed = value?.trim();
+	return trimmed ? trimmed : undefined;
 }
 
-function normalizeSettings(settings: Partial<JellyfinSettings>): Partial<JellyfinSettings> {
+function normalizeSettings(
+	settings: Partial<JellyfinSettings>,
+): Partial<JellyfinSettings> {
 	return {
 		url: normalizeValue(settings.url),
 		apiKey: normalizeValue(settings.apiKey),
 		userId: normalizeValue(settings.userId),
 		username: normalizeValue(settings.username),
 		password: normalizeValue(settings.password),
-	}
+	};
 }
 
 function readEnvSettings(): Partial<JellyfinSettings> {
 	return {
-		url: process.env["JELLYFIN_URL"],
-		apiKey: process.env["JELLYFIN_API_KEY"],
-		userId: process.env["JELLYFIN_USER_ID"],
-		username: process.env["JELLYFIN_USERNAME"],
-		password: process.env["JELLYFIN_PASSWORD"],
-	}
+		url: process.env.JELLYFIN_URL,
+		apiKey: process.env.JELLYFIN_API_KEY,
+		userId: process.env.JELLYFIN_USER_ID,
+		username: process.env.JELLYFIN_USERNAME,
+		password: process.env.JELLYFIN_PASSWORD,
+	};
 }
 
-function areRequiredSettingsComplete(settings: Partial<JellyfinSettings>): settings is JellyfinSettings {
-	return Boolean(settings.url && settings.apiKey && settings.userId)
+function areRequiredSettingsComplete(
+	settings: Partial<JellyfinSettings>,
+): settings is JellyfinSettings {
+	return Boolean(settings.url && settings.apiKey && settings.userId);
 }
 
 export function getStoredJellyfinSettings(): Partial<JellyfinSettings> {
@@ -96,19 +102,19 @@ export function getStoredJellyfinSettings(): Partial<JellyfinSettings> {
 		userId: getSetting("jellyfin.userId"),
 		username: getSetting("jellyfin.username"),
 		password: getSetting("jellyfin.password"),
-	})
+	});
 }
 
 export function getEffectiveJellyfinSettings(): JellyfinSettings | null {
-	const stored = getStoredJellyfinSettings()
-	const env = normalizeSettings(readEnvSettings())
+	const stored = getStoredJellyfinSettings();
+	const env = normalizeSettings(readEnvSettings());
 	const merged = {
 		url: stored.url || env.url,
 		apiKey: stored.apiKey || env.apiKey,
 		userId: stored.userId || env.userId,
 		username: stored.username || env.username,
 		password: stored.password || env.password,
-	}
+	};
 
 	return areRequiredSettingsComplete(merged)
 		? {
@@ -118,25 +124,25 @@ export function getEffectiveJellyfinSettings(): JellyfinSettings | null {
 				username: merged.username,
 				password: merged.password,
 			}
-		: null
+		: null;
 }
 
 function getJellyfinSettingsSource(): SettingsSource {
-	const stored = getStoredJellyfinSettings()
-	const env = normalizeSettings(readEnvSettings())
+	const stored = getStoredJellyfinSettings();
+	const env = normalizeSettings(readEnvSettings());
 
-	const storedComplete = areRequiredSettingsComplete(stored)
-	const envComplete = areRequiredSettingsComplete(env)
+	const storedComplete = areRequiredSettingsComplete(stored);
+	const envComplete = areRequiredSettingsComplete(env);
 
-	if (storedComplete) return "database"
-	if (envComplete) return "env"
-	if (Object.values({ ...stored, ...env }).some(Boolean)) return "merged"
-	return "missing"
+	if (storedComplete) return "database";
+	if (envComplete) return "env";
+	if (Object.values({ ...stored, ...env }).some(Boolean)) return "merged";
+	return "missing";
 }
 
 export function getConfigurationSummary() {
-	const stored = getStoredJellyfinSettings()
-	const effective = getEffectiveJellyfinSettings()
+	const stored = getStoredJellyfinSettings();
+	const effective = getEffectiveJellyfinSettings();
 
 	return {
 		configured: Boolean(effective),
@@ -148,26 +154,29 @@ export function getConfigurationSummary() {
 			username: stored.username ?? effective?.username ?? "",
 			hasPassword: Boolean(stored.password ?? effective?.password),
 		},
-	}
+	};
 }
 
 export function saveJellyfinSettings(settings: JellyfinSettings) {
-	setSetting("jellyfin.url", settings.url.trim())
-	setSetting("jellyfin.apiKey", settings.apiKey.trim())
-	setSetting("jellyfin.userId", settings.userId.trim())
-	setSetting("jellyfin.username", settings.username?.trim() ?? "")
-	setSetting("jellyfin.password", settings.password?.trim() ?? "")
+	setSetting("jellyfin.url", settings.url.trim());
+	setSetting("jellyfin.apiKey", settings.apiKey.trim());
+	setSetting("jellyfin.userId", settings.userId.trim());
+	setSetting("jellyfin.username", settings.username?.trim() ?? "");
+	setSetting("jellyfin.password", settings.password?.trim() ?? "");
 }
 
 export async function validateJellyfinSettings(settings: JellyfinSettings) {
-	const normalized = normalizeSettings(settings)
+	const normalized = normalizeSettings(settings);
 
 	if (!areRequiredSettingsComplete(normalized)) {
-		throw new Error("Server URL, API key, and user ID are required.")
+		throw new Error("Server URL, API key, and user ID are required.");
 	}
 
-	if ((normalized.username && !normalized.password) || (!normalized.username && normalized.password)) {
-		throw new Error("Provide both username and password, or leave both empty.")
+	if (
+		(normalized.username && !normalized.password) ||
+		(!normalized.username && normalized.password)
+	) {
+		throw new Error("Provide both username and password, or leave both empty.");
 	}
 
 	const client = createClient({
@@ -179,12 +188,12 @@ export async function validateJellyfinSettings(settings: JellyfinSettings) {
 		clientName: "Fathom",
 		deviceName: "Fathom Web",
 		deviceId: "fathom-web",
-	})
+	});
 
-	await getUserById(client, normalized.userId)
+	await getUserById(client, normalized.userId);
 
 	if (normalized.username && normalized.password) {
-		await client.getPlaybackAuth()
+		await client.getPlaybackAuth();
 	}
 
 	return {
@@ -193,5 +202,5 @@ export async function validateJellyfinSettings(settings: JellyfinSettings) {
 		userId: normalized.userId,
 		username: normalized.username,
 		password: normalized.password,
-	}
+	};
 }
