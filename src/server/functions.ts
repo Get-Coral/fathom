@@ -63,3 +63,72 @@ export const autofillMissingCovers = createServerFn({ method: "POST" })
 		const { autofillMissingCovers: runAutofill } = await import("../lib/jellyfin");
 		return runAutofill(data?.limit ?? 10);
 	});
+
+export const fetchCollectionOptions = createServerFn({ method: "GET" }).handler(async () => {
+	const { fetchCollectionOptions: fetchCollections } = await import("../lib/jellyfin");
+	return fetchCollections();
+});
+
+export const toggleFavorite = createServerFn({ method: "POST" })
+	.inputValidator((input: { itemId: string; nextFavorite: boolean }) => input)
+	.handler(async ({ data }) => {
+		const { toggleItemFavorite } = await import("../lib/jellyfin");
+		return toggleItemFavorite(data.itemId, data.nextFavorite);
+	});
+
+export const saveBookMetadata = createServerFn({ method: "POST" })
+	.inputValidator(
+		(input: { itemId: string; title: string; overview: string; year?: number; genres: string[] }) =>
+			input,
+	)
+	.handler(async ({ data }) => {
+		const { updateBookMetadata } = await import("../lib/jellyfin");
+		return updateBookMetadata(data.itemId, {
+			title: data.title,
+			overview: data.overview,
+			year: data.year,
+			genres: data.genres,
+		});
+	});
+
+export const removeLibraryItem = createServerFn({ method: "POST" })
+	.inputValidator((input: { itemId: string }) => input)
+	.handler(async ({ data }) => {
+		const { deleteLibraryItem } = await import("../lib/jellyfin");
+		return deleteLibraryItem(data.itemId);
+	});
+
+export const addItemToCollection = createServerFn({ method: "POST" })
+	.inputValidator((input: { itemId: string; collectionId: string }) => input)
+	.handler(async ({ data }) => {
+		const { addItemToCollection: addToCollection } = await import("../lib/jellyfin");
+		return addToCollection(data.itemId, data.collectionId);
+	});
+
+export const removeItemFromCollection = createServerFn({ method: "POST" })
+	.inputValidator((input: { itemId: string; collectionId: string }) => input)
+	.handler(async ({ data }) => {
+		const { removeItemFromCollection: removeFromCollection } = await import("../lib/jellyfin");
+		return removeFromCollection(data.itemId, data.collectionId);
+	});
+
+export const createCollectionForItem = createServerFn({ method: "POST" })
+	.inputValidator((input: { itemId: string; name: string }) => input)
+	.handler(async ({ data }) => {
+		const { createCollectionWithItem } = await import("../lib/jellyfin");
+		return createCollectionWithItem(data.itemId, data.name);
+	});
+
+export const searchLibrary = createServerFn({ method: "GET" })
+	.inputValidator((input: { query: string }) => input)
+	.handler(async ({ data }) => {
+		const { searchLibraryBooks } = await import("../lib/jellyfin");
+		return searchLibraryBooks(data.query);
+	});
+
+export const fetchReaderSession = createServerFn({ method: "GET" })
+	.inputValidator((input: { itemId: string }) => input)
+	.handler(async ({ data }) => {
+		const { fetchReaderSession: fetchSession } = await import("../lib/jellyfin");
+		return fetchSession(data.itemId);
+	});

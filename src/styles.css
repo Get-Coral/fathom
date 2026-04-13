@@ -18,6 +18,22 @@
 }
 
 @layer base {
+  :root {
+    --coral-color-bg: #060d12;
+    --coral-color-surface: rgba(255, 255, 255, 0.04);
+    --coral-color-surface-strong: rgba(255, 255, 255, 0.1);
+    --coral-color-ink: #f0ede8;
+    --coral-color-muted: rgba(240, 237, 232, 0.55);
+    --coral-color-faint: rgba(240, 237, 232, 0.25);
+    --coral-color-brand: #9ac8aa;
+    --coral-color-brand-soft: rgb(154 200 170 / 20%);
+    --coral-color-brand-soft-hover: rgb(154 200 170 / 30%);
+    --coral-color-brand-contrast: #060d12;
+    --coral-color-border: rgba(255, 255, 255, 0.08);
+    --coral-font-sans: var(--font-sans);
+    --coral-font-display: var(--font-display);
+  }
+
   body {
     background-color: var(--color-abyss);
     color: var(--color-ink);

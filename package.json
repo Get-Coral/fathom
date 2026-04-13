@@ -26,6 +26,7 @@
     "@tanstack/react-router-devtools": "latest",
     "@tanstack/react-router-ssr-query": "latest",
     "@tanstack/react-start": "latest",
+    "epubjs": "^0.3.93",
     "lucide-react": "latest",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

@@ -1,6 +1,12 @@
 import {
+	addItemsToCollection,
+	applyRemoteImageWithFallback,
 	createClient,
-	downloadRemoteImage,
+	createCollection,
+	deleteItem,
+	getCollections,
+	getCoverCandidates,
+	getCoverCandidatesForItem,
 	getItem,
 	getItemCounts,
 	getLibraryItems,
@@ -9,10 +15,15 @@ import {
 	getUserById,
 	getVirtualFolders,
 	imageUrl,
+	type JellyfinCoverCandidate,
+	type JellyfinItem,
 	type JellyfinItemCounts,
-	type JellyfinRemoteImageInfo,
 	type JellyfinSystemInfo,
 	type JellyfinVirtualFolder,
+	removeItemsFromCollection,
+	searchItems,
+	setFavorite,
+	updateItem,
 } from "@get-coral/jellyfin";
 import { getEffectiveJellyfinSettings } from "./config-store";
 
@@ -33,12 +44,28 @@ export interface FathomBookCard {
 
 export interface FathomBookDetail extends FathomBookCard {
 	publisher?: string;
+	isFavorite: boolean;
+	jellyfinWebUrl: string;
 	people: Array<{
 		id: string;
 		name: string;
 		role?: string;
 		type?: string;
 	}>;
+}
+
+export interface FathomCollectionOption {
+	id: string;
+	name: string;
+}
+
+export type FathomReaderFormat = "epub" | "pdf";
+
+export interface FathomReaderSession {
+	itemId: string;
+	title: string;
+	format: FathomReaderFormat;
+	url: string;
 }
 
 export interface FathomDashboardData {
@@ -52,20 +79,14 @@ export interface FathomDashboardData {
 	collections: FathomBookCard[];
 }
 
-export interface FathomRemoteImageCandidate {
-	url: string;
-	thumbnailUrl: string;
-	providerName: string;
-	width?: number;
-	height?: number;
-	communityRating?: number;
-	voteCount?: number;
-}
+export type FathomRemoteImageCandidate = JellyfinCoverCandidate;
 
 export interface FathomAutoCoverResult {
 	processed: number;
 	updated: number;
 	failures: number;
+	externalCandidatesUsed: number;
+	uploadFallbackUsed: number;
 }
 
 function getRequiredSettings() {
@@ -91,6 +112,34 @@ function createFathomClient() {
 		deviceName: "Fathom Web",
 		deviceId: "fathom-web",
 	});
+}
+
+function jellyfinWebDetailsUrl(itemId: string) {
+	const settings = getRequiredSettings();
+	return `${settings.url.replace(/\/+$/, "")}/web/#/details?id=${itemId}`;
+}
+
+function jellyfinItemDownloadUrl(itemId: string) {
+	const settings = getRequiredSettings();
+	const url = new URL(`${settings.url.replace(/\/+$/, "")}/Items/${itemId}/Download`);
+	url.searchParams.set("api_key", settings.apiKey);
+	return url.toString();
+}
+
+function detectReaderFormat(item: JellyfinItem) {
+	const container = (item as JellyfinItem & { Container?: string }).Container?.toLowerCase();
+	if (container === "epub") return "epub" as const;
+	if (container === "pdf") return "pdf" as const;
+
+	const path = (item as JellyfinItem & { Path?: string }).Path?.toLowerCase() ?? "";
+	if (path.endsWith(".epub")) return "epub" as const;
+	if (path.endsWith(".pdf")) return "pdf" as const;
+
+	const title = item.Name.toLowerCase();
+	if (title.endsWith(".epub")) return "epub" as const;
+	if (title.endsWith(".pdf")) return "pdf" as const;
+
+	return null;
 }
 
 function toBookCard(
@@ -170,6 +219,8 @@ export async function fetchBookDetail(itemId: string): Promise<FathomBookDetail>
 	return {
 		...toBookCard(client, item),
 		publisher: item.Studios?.[0]?.Name,
+		isFavorite: Boolean(item.UserData?.IsFavorite),
+		jellyfinWebUrl: jellyfinWebDetailsUrl(itemId),
 		people:
 			item.People?.map((person) => ({
 				id: person.Id,
@@ -180,46 +231,104 @@ export async function fetchBookDetail(itemId: string): Promise<FathomBookDetail>
 	};
 }
 
-function toRemoteImageCandidate(image: JellyfinRemoteImageInfo): FathomRemoteImageCandidate | null {
-	const url = image.Url?.trim();
-	if (!url) return null;
+export async function fetchCollectionOptions(): Promise<FathomCollectionOption[]> {
+	const client = createFathomClient();
+	const collections = await getCollections(client);
+	return collections.map((collection) => ({
+		id: collection.Id,
+		name: collection.Name,
+	}));
+}
+
+export async function toggleItemFavorite(itemId: string, nextFavorite: boolean) {
+	const client = createFathomClient();
+	await setFavorite(client, itemId, !nextFavorite);
+	return { isFavorite: nextFavorite };
+}
+
+export async function updateBookMetadata(
+	itemId: string,
+	input: { title: string; overview: string; year?: number; genres: string[] },
+) {
+	const client = createFathomClient();
+	await updateItem(client, itemId, {
+		name: input.title,
+		overview: input.overview,
+		productionYear: input.year,
+		genres: input.genres,
+	});
+	return fetchBookDetail(itemId);
+}
+
+export async function deleteLibraryItem(itemId: string) {
+	const client = createFathomClient();
+	await deleteItem(client, itemId);
+	return { ok: true };
+}
+
+export async function addItemToCollection(itemId: string, collectionId: string) {
+	const client = createFathomClient();
+	await addItemsToCollection(client, collectionId, [itemId]);
+	return { ok: true };
+}
+
+export async function removeItemFromCollection(itemId: string, collectionId: string) {
+	const client = createFathomClient();
+	await removeItemsFromCollection(client, collectionId, [itemId]);
+	return { ok: true };
+}
+
+export async function createCollectionWithItem(itemId: string, name: string) {
+	const client = createFathomClient();
+	const created = await createCollection(client, name, [itemId]);
+	return { id: created.Id };
+}
+
+export async function searchLibraryBooks(query: string): Promise<FathomBookCard[]> {
+	const client = createFathomClient();
+	const trimmedQuery = query.trim();
+	if (!trimmedQuery) {
+		return [];
+	}
+
+	const items = await searchItems(client, trimmedQuery, ["Book", "BoxSet"]);
+	return items.slice(0, 30).map((item) => toBookCard(client, item));
+}
+
+export async function fetchReaderSession(itemId: string): Promise<FathomReaderSession> {
+	const client = createFathomClient();
+	const item = await getItem(client, itemId);
+	const format = detectReaderFormat(item);
+
+	if (!format) {
+		throw new Error("This item is not an EPUB or PDF. Use 'Read in Jellyfin' for this format.");
+	}
 
 	return {
-		url,
-		thumbnailUrl: image.ThumbnailUrl?.trim() || url,
-		providerName: image.ProviderName?.trim() || "Unknown provider",
-		width: image.Width ?? undefined,
-		height: image.Height ?? undefined,
-		communityRating: image.CommunityRating ?? undefined,
-		voteCount: image.VoteCount ?? undefined,
+		itemId,
+		title: item.Name,
+		format,
+		url: jellyfinItemDownloadUrl(itemId),
 	};
+}
+
+async function fetchCoverCandidatesForItem(
+	client: ReturnType<typeof createClient>,
+	item: JellyfinItem,
+): Promise<FathomRemoteImageCandidate[]> {
+	return await getCoverCandidates(client, item, "Primary");
 }
 
 export async function fetchRemoteCoverOptions(
 	itemId: string,
 ): Promise<FathomRemoteImageCandidate[]> {
 	const client = createFathomClient();
-	const images = await getRemoteImages(client, itemId, "Primary");
-
-	return images
-		.map((image) => toRemoteImageCandidate(image))
-		.filter((image): image is FathomRemoteImageCandidate => image !== null);
+	return await getCoverCandidatesForItem(client, itemId, "Primary");
 }
 
 export async function applyRemoteCover(itemId: string, imageUrl: string) {
 	const client = createFathomClient();
-	await downloadRemoteImage(client, itemId, imageUrl, "Primary");
-}
-
-function firstRemoteImageUrl(images: JellyfinRemoteImageInfo[]) {
-	for (const image of images) {
-		const url = image.Url?.trim();
-		if (url) {
-			return url;
-		}
-	}
-
-	return null;
+	await applyRemoteImageWithFallback(client, itemId, imageUrl, "Primary");
 }
 
 export async function autofillMissingCovers(limit = 10): Promise<FathomAutoCoverResult> {
@@ -251,16 +360,49 @@ export async function autofillMissingCovers(limit = 10): Promise<FathomAutoCover
 	const targets = [...itemsById.values()].slice(0, Math.max(1, limit));
 	let updated = 0;
 	let failures = 0;
+	let externalCandidatesUsed = 0;
+	let uploadFallbackUsed = 0;
 
 	for (const item of targets) {
 		try {
-			const images = await getRemoteImages(client, item.Id, "Primary");
-			const selectedUrl = firstRemoteImageUrl(images);
-			if (!selectedUrl) {
+			const detailedItem = await getItem(client, item.Id);
+			const remoteImages = await getRemoteImages(client, item.Id, "Primary");
+			const candidates = await fetchCoverCandidatesForItem(client, detailedItem);
+
+			if (candidates.length === 0) {
 				continue;
 			}
 
-			await downloadRemoteImage(client, item.Id, selectedUrl, "Primary");
+			const remoteUrlSet = new Set(
+				remoteImages.map((image) => image.Url?.trim()).filter((url): url is string => Boolean(url)),
+			);
+			let applied = false;
+			for (const candidate of candidates) {
+				const selectedFromExternal = !remoteUrlSet.has(candidate.url);
+				if (selectedFromExternal) {
+					externalCandidatesUsed += 1;
+				}
+
+				try {
+					const method = await applyRemoteImageWithFallback(
+						client,
+						item.Id,
+						candidate.url,
+						"Primary",
+					);
+					if (method === "binary-upload") {
+						uploadFallbackUsed += 1;
+					}
+					applied = true;
+					break;
+				} catch {}
+			}
+
+			if (!applied) {
+				failures += 1;
+				continue;
+			}
+
 			updated += 1;
 		} catch {
 			failures += 1;
@@ -271,5 +413,7 @@ export async function autofillMissingCovers(limit = 10): Promise<FathomAutoCover
 		processed: targets.length,
 		updated,
 		failures,
+		externalCandidatesUsed,
+		uploadFallbackUsed,
 	};
 }

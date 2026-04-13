@@ -1,6 +1,8 @@
+import { CoralErrorState } from "@get-coral/ui";
 import { createRootRoute, HeadContent, Outlet, Scripts, useRouter } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AppBootstrap } from "#/components/AppBootstrap";
+import "@get-coral/ui/styles.css";
 import "#/styles.css";
 
 export const Route = createRootRoute({
@@ -25,6 +27,7 @@ export const Route = createRootRoute({
 	}),
 	component: RootComponent,
 	errorComponent: RootErrorPage,
+	notFoundComponent: RootNotFoundPage,
 });
 
 function RootComponent() {
@@ -64,25 +67,33 @@ function RootErrorPage({ error, reset }: { error: Error; reset: () => void }) {
 				<HeadContent />
 			</head>
 			<body className="min-h-screen bg-abyss text-ink">
-				<main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6">
-					<h1 className="font-display text-4xl">Something went wrong</h1>
-					{error?.message && <p className="max-w-md text-center text-ink-muted">{error.message}</p>}
-					<div className="flex gap-3">
-						<button
-							type="button"
-							onClick={handleRetry}
-							className="rounded-xl bg-moss/20 px-5 py-2.5 text-sm font-medium text-moss hover:bg-moss/30"
-						>
-							Try again
-						</button>
-						<a
-							href="/setup"
-							className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-medium text-ink hover:bg-white/15"
-						>
-							Go to setup
-						</a>
-					</div>
-				</main>
+				<CoralErrorState
+					eyebrow="Fathom"
+					title="Something went wrong"
+					description={error?.message ?? "An unexpected error happened while loading this route."}
+					primaryAction={{ label: "Try again", onClick: handleRetry }}
+					secondaryAction={{ label: "Go to setup", href: "/setup", variant: "neutral" }}
+				/>
+				<Scripts />
+			</body>
+		</html>
+	);
+}
+
+function RootNotFoundPage() {
+	return (
+		<html lang="en">
+			<head>
+				<HeadContent />
+			</head>
+			<body className="min-h-screen bg-abyss text-ink">
+				<CoralErrorState
+					code="404"
+					title="Page not found"
+					description="This route does not exist in Fathom. You can return to your library dashboard or edit your server connection."
+					primaryAction={{ label: "Back to dashboard", href: "/" }}
+					secondaryAction={{ label: "Go to setup", href: "/setup", variant: "neutral" }}
+				/>
 				<Scripts />
 			</body>
 		</html>

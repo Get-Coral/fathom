@@ -3,8 +3,11 @@ import { useState } from "react";
 import { fetchSetupStatus, saveSetupConfiguration } from "#/server/functions";
 
 export const Route = createFileRoute("/setup")({
-	validateSearch: (search: Record<string, unknown>): { error?: "connection" } => ({
+	validateSearch: (search: Record<string, unknown>): { error?: "connection"; reason?: string } => ({
 		...(search.error === "connection" && { error: "connection" as const }),
+		...(typeof search.reason === "string" && search.reason.trim()
+			? { reason: search.reason.trim().slice(0, 200) }
+			: {}),
 	}),
 	loader: async () => fetchSetupStatus(),
 	component: SetupPage,
@@ -13,7 +16,7 @@ export const Route = createFileRoute("/setup")({
 function SetupPage() {
 	const navigate = useNavigate();
 	const summary = Route.useLoaderData();
-	const { error: searchError } = Route.useSearch();
+	const { error: searchError, reason: searchReason } = Route.useSearch();
 	const [url, setUrl] = useState(summary.current.url);
 	const [apiKey, setApiKey] = useState(summary.current.apiKey);
 	const [userId, setUserId] = useState(summary.current.userId);
@@ -160,7 +163,8 @@ function SetupPage() {
 
 						{searchError === "connection" && !error ? (
 							<div className="rounded-2xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">
-								Fathom couldn't reach your Jellyfin server. Check the URL and API key below.
+								<p>Fathom couldn't reach your Jellyfin server. Check the URL and API key below.</p>
+								{searchReason ? <p className="mt-2 opacity-80">Details: {searchReason}</p> : null}
 							</div>
 						) : null}
 
