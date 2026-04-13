@@ -62,32 +62,24 @@ function RootErrorPage({ error, reset }: { error: Error; reset: () => void }) {
 	}
 
 	return (
-		<RootStateLayout>
-			<CoralErrorState
-				eyebrow="Fathom"
-				title="Something went wrong"
-				description={error?.message ?? "An unexpected error happened while loading this route."}
-				primaryAction={{ label: "Try again", onClick: handleRetry }}
-				secondaryAction={{ label: "Go to setup", href: "/setup", variant: "neutral" }}
-			/>
-		</RootStateLayout>
+		<CoralErrorState
+			eyebrow="Fathom"
+			title="Something went wrong"
+			description={error?.message ?? "An unexpected error happened while loading this route."}
+			primaryAction={{ label: "Try again", onClick: handleRetry }}
+			secondaryAction={{ label: "Go to setup", href: "/setup", variant: "neutral" }}
+		/>
 	);
 }
 
 function RootNotFoundPage() {
 	return (
-		<RootStateLayout>
-			<CoralErrorState
-				code="404"
-				title="Page not found"
-				description="This route does not exist in Fathom. You can return to your library dashboard or edit your server connection."
-				primaryAction={{ label: "Back to dashboard", href: "/" }}
-				secondaryAction={{ label: "Go to setup", href: "/setup", variant: "neutral" }}
-			/>
-		</RootStateLayout>
+		<CoralErrorState
+			code="404"
+			title="Page not found"
+			description="This route does not exist in Fathom. You can return to your library dashboard or edit your server connection."
+			primaryAction={{ label: "Back to dashboard", href: "/" }}
+			secondaryAction={{ label: "Go to setup", href: "/setup", variant: "neutral" }}
+		/>
 	);
-}
-
-function RootStateLayout({ children }: { children: ReactNode }) {
-	return <main className="min-h-screen bg-abyss text-ink">{children}</main>;
 }
