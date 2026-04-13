@@ -3,6 +3,9 @@ import { useState } from "react";
 import { fetchSetupStatus, saveSetupConfiguration } from "#/server/functions";
 
 export const Route = createFileRoute("/setup")({
+	validateSearch: (search: Record<string, unknown>): { error?: "connection" } => ({
+		...(search.error === "connection" && { error: "connection" as const }),
+	}),
 	loader: async () => fetchSetupStatus(),
 	component: SetupPage,
 });
@@ -10,6 +13,7 @@ export const Route = createFileRoute("/setup")({
 function SetupPage() {
 	const navigate = useNavigate();
 	const summary = Route.useLoaderData();
+	const { error: searchError } = Route.useSearch();
 	const [url, setUrl] = useState(summary.current.url);
 	const [apiKey, setApiKey] = useState(summary.current.apiKey);
 	const [userId, setUserId] = useState(summary.current.userId);
@@ -153,6 +157,12 @@ function SetupPage() {
 								/>
 							</div>
 						</div>
+
+						{searchError === "connection" && !error ? (
+							<div className="rounded-2xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">
+								Fathom couldn't reach your Jellyfin server. Check the URL and API key below.
+							</div>
+						) : null}
 
 						{error ? (
 							<div className="rounded-2xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">

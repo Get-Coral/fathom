@@ -19,14 +19,19 @@ export const Route = createFileRoute("/")({
 		const setupStatus = await fetchSetupStatus();
 
 		if (!setupStatus?.configured) {
-			throw redirect({ to: "/setup" });
+			throw redirect({ to: "/setup", search: {} });
 		}
 
-		return fetchDashboard();
+		try {
+			return await fetchDashboard();
+		} catch {
+			throw redirect({ to: "/setup", search: { error: "connection" as const } });
+		}
 	},
 	component: Home,
 });
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Home intentionally composes many conditional UI sections.
 function Home() {
 	const initialDashboard = Route.useLoaderData();
 	const [dashboard, setDashboard] = useState<FathomDashboardData>(initialDashboard);
@@ -61,6 +66,7 @@ function Home() {
 		const itemId = selectedItemId;
 		let cancelled = false;
 
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Error and cancellation handling is intentionally explicit.
 		async function loadDetail() {
 			try {
 				setDetailLoading(true);
@@ -154,6 +160,7 @@ function Home() {
 					<div className="flex flex-wrap gap-3">
 						<Link
 							to="/setup"
+							search={{}}
 							className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-ink"
 						>
 							Edit connection
@@ -320,6 +327,7 @@ function Home() {
 									) : null}
 									{remoteImages.length > 0 ? (
 										<div className="mt-4 grid gap-3 sm:grid-cols-2">
+											{/* biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Inline rendering keeps candidate-specific UI details colocated. */}
 											{remoteImages.slice(0, 6).map((image) => (
 												<div
 													key={image.url}
