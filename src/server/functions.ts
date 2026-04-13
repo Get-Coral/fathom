@@ -1,11 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 
-export const fetchSetupStatus = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const { getConfigurationSummary } = await import("../lib/config-store");
-		return getConfigurationSummary();
-	},
-);
+export const fetchSetupStatus = createServerFn({ method: "GET" }).handler(async () => {
+	const { getConfigurationSummary } = await import("../lib/config-store");
+	return getConfigurationSummary();
+});
 
 export const saveSetupConfiguration = createServerFn({ method: "POST" })
 	.inputValidator(
@@ -18,9 +16,7 @@ export const saveSetupConfiguration = createServerFn({ method: "POST" })
 		}) => input,
 	)
 	.handler(async ({ data }) => {
-		const { saveJellyfinSettings, validateJellyfinSettings } = await import(
-			"../lib/config-store"
-		);
+		const { saveJellyfinSettings, validateJellyfinSettings } = await import("../lib/config-store");
 		const validated = await validateJellyfinSettings({
 			url: data.url,
 			apiKey: data.apiKey,
@@ -34,12 +30,10 @@ export const saveSetupConfiguration = createServerFn({ method: "POST" })
 		return { configured: true };
 	});
 
-export const fetchDashboard = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const { fetchDashboardData } = await import("../lib/jellyfin");
-		return fetchDashboardData();
-	},
-);
+export const fetchDashboard = createServerFn({ method: "GET" }).handler(async () => {
+	const { fetchDashboardData } = await import("../lib/jellyfin");
+	return fetchDashboardData();
+});
 
 export const fetchBookDetail = createServerFn({ method: "GET" })
 	.inputValidator((input: { itemId: string }) => input)
@@ -51,9 +45,7 @@ export const fetchBookDetail = createServerFn({ method: "GET" })
 export const fetchRemoteCoverOptions = createServerFn({ method: "GET" })
 	.inputValidator((input: { itemId: string }) => input)
 	.handler(async ({ data }) => {
-		const { fetchRemoteCoverOptions: fetchOptions } = await import(
-			"../lib/jellyfin"
-		);
+		const { fetchRemoteCoverOptions: fetchOptions } = await import("../lib/jellyfin");
 		return fetchOptions(data.itemId);
 	});
 
