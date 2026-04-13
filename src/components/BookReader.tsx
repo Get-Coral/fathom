@@ -206,6 +206,13 @@ export function BookReader({ itemId, format, title, url, onClose }: BookReaderPr
 		[goNext, goPrev],
 	);
 
+	// Stable refs so event handlers always call the latest function without
+	// requiring effect re-registration or EPUB rendition re-initialisation.
+	const handleNavigationKeyRef = useRef(handleNavigationKey);
+	handleNavigationKeyRef.current = handleNavigationKey;
+	const onCloseRef = useRef(onClose);
+	onCloseRef.current = onClose;
+
 	useEffect(() => {
 		if (format !== "epub") {
 			return;
@@ -271,7 +278,7 @@ export function BookReader({ itemId, format, title, url, onClose }: BookReaderPr
 				};
 				const attachedDocuments = new Set<Document>();
 				const keydownFromEpubContents = (event: KeyboardEvent) => {
-					if (handleNavigationKey(event.key)) {
+					if (handleNavigationKeyRef.current(event.key)) {
 						event.preventDefault();
 						event.stopPropagation();
 					}
@@ -285,6 +292,8 @@ export function BookReader({ itemId, format, title, url, onClose }: BookReaderPr
 					attachedDocuments.add(documentRef);
 				};
 				rendition.on("relocated", relocateHandler);
+				// Use EPUB.js native keydown proxying as the primary keyboard nav method.
+				rendition.on("keydown", keydownFromEpubContents);
 				rendition.hooks?.content.register((contents: EpubContents) => {
 					// Some EPUB files embed scripts that are blocked in sandboxed chapter iframes.
 					// Removing them avoids repeated browser warnings and keeps reader behavior stable.
@@ -307,6 +316,7 @@ export function BookReader({ itemId, format, title, url, onClose }: BookReaderPr
 
 				return () => {
 					rendition.off?.("relocated", relocateHandler);
+					rendition.off?.("keydown", keydownFromEpubContents);
 					for (const documentRef of attachedDocuments) {
 						documentRef.removeEventListener("keydown", keydownFromEpubContents, true);
 					}
@@ -335,7 +345,8 @@ export function BookReader({ itemId, format, title, url, onClose }: BookReaderPr
 			renditionRef.current = null;
 			bookRef.current = null;
 		};
-	}, [format, handleNavigationKey, persist, storagePrefix, url]);
+		// handleNavigationKey is accessed via a stable ref; deps omitted to prevent the EPUB rendition from tearing down on every render.
+	}, [format, persist, storagePrefix, url]);
 
 	useEffect(() => {
 		if (format !== "epub" || !renditionRef.current) {
@@ -353,11 +364,11 @@ export function BookReader({ itemId, format, title, url, onClose }: BookReaderPr
 
 			if (event.key === "Escape") {
 				event.preventDefault();
-				onClose();
+				onCloseRef.current();
 				return;
 			}
 
-			if (handleNavigationKey(event.key)) {
+			if (handleNavigationKeyRef.current(event.key)) {
 				event.preventDefault();
 			}
 		}
@@ -368,7 +379,8 @@ export function BookReader({ itemId, format, title, url, onClose }: BookReaderPr
 			document.removeEventListener("keydown", onKeyDown, true);
 			window.removeEventListener("keydown", onKeyDown, true);
 		};
-	}, [handleNavigationKey, onClose]);
+		// Both handlers are accessed via stable refs; listener is registered once on mount and removed on unmount.
+	}, []);
 
 	function onTouchStart(event: React.TouchEvent<HTMLDivElement>) {
 		touchStartXRef.current = event.changedTouches[0]?.clientX ?? null;

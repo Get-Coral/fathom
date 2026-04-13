@@ -331,6 +331,7 @@ export async function applyRemoteCover(itemId: string, imageUrl: string) {
 	await applyRemoteImageWithFallback(client, itemId, imageUrl, "Primary");
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Autofill intentionally coordinates multiple fallback paths and counters.
 export async function autofillMissingCovers(limit = 10): Promise<FathomAutoCoverResult> {
 	const client = createFathomClient();
 	const [recentBooks, libraryBooks] = await Promise.all([
