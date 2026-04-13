@@ -106,6 +106,7 @@ function Home() {
 	const [searchLoading, setSearchLoading] = useState(false);
 	const [readerSession, setReaderSession] = useState<FathomReaderSession | null>(null);
 	const [readerLoading, setReaderLoading] = useState(false);
+	const [manageOpen, setManageOpen] = useState(false);
 
 	async function reloadDashboard() {
 		const nextDashboard = await fetchDashboard();
@@ -235,6 +236,14 @@ function Home() {
 		setMetadataYear(selectedDetail.year ? String(selectedDetail.year) : "");
 		setMetadataGenres(selectedDetail.genres.join(", "));
 	}, [selectedDetail]);
+
+	useEffect(() => {
+		if (!selectedItemId) {
+			return;
+		}
+
+		setManageOpen(false);
+	}, [selectedItemId]);
 
 	async function refreshAfterLibraryAction(itemId: string) {
 		await Promise.all([reloadDashboard(), reloadCollections()]);
@@ -458,23 +467,31 @@ function Home() {
 			value: dashboard.itemCounts.BookCount ?? dashboard.libraryBooks.length,
 		},
 		{ label: "Collections", value: dashboard.collections.length },
-		{ label: "Libraries", value: dashboard.virtualFolders.length },
+		{ label: "Continue list", value: dashboard.recentBooks.length },
 		{ label: "Server", value: dashboard.systemInfo.ServerName },
 	];
 
+	const continueBook =
+		selectedDetail ??
+		dashboard.recentBooks.find((item) => item.id === selectedItemId) ??
+		dashboard.recentBooks[0] ??
+		dashboard.featured;
+
 	return (
 		<>
-			<main className="min-h-screen bg-abyss px-6 py-8 text-ink sm:px-8 xl:px-12 2xl:px-16">
+			<main className="min-h-screen bg-abyss px-4 py-6 text-ink sm:px-6 sm:py-8 xl:px-10 2xl:px-14">
 				<div className="mx-auto max-w-[96rem]">
-					<div className="mb-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+					<div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
 						<div>
-							<p className="text-xs font-semibold uppercase tracking-[0.35em] text-moss">Fathom</p>
-							<h1 className="mt-3 max-w-4xl font-display text-5xl leading-none text-ink sm:text-6xl">
-								Your reading room from Jellyfin
+							<p className="text-xs font-semibold uppercase tracking-[0.35em] text-moss">
+								Fathom Home
+							</p>
+							<h1 className="mt-3 max-w-4xl font-display text-4xl leading-none text-ink sm:text-5xl xl:text-6xl">
+								Pick up where you left off
 							</h1>
-							<p className="mt-4 max-w-3xl text-lg leading-8 text-ink-muted">
-								Browse books, manga, comics, and reading collections without the usual self-hosted
-								rough edges. Fathom is the calm, cover-first layer for your NAS library.
+							<p className="mt-4 max-w-3xl text-base leading-7 text-ink-muted sm:text-lg sm:leading-8">
+								Jump straight into your next chapter, discover a new title from your shelves, and
+								keep your library flowing without leaving the couch.
 							</p>
 						</div>
 
@@ -496,6 +513,66 @@ function Home() {
 							</Link>
 						</div>
 					</div>
+
+					<section className="mb-6 overflow-hidden rounded-[1.75rem] border border-white/10 bg-gradient-to-br from-moss/18 via-white/[0.04] to-coral/10 p-4 sm:p-6 xl:p-7">
+						<div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_18rem] lg:items-center">
+							<div>
+								<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">
+									Continue reading
+								</p>
+								<h2 className="mt-2 font-display text-3xl text-ink sm:text-4xl">
+									{continueBook?.title ?? "No recent book yet"}
+								</h2>
+								<p className="mt-2 text-xs uppercase tracking-[0.25em] text-ink-faint">
+									{continueBook?.type ?? "Book"}
+									{continueBook?.year ? ` · ${continueBook.year}` : ""}
+								</p>
+								<p className="mt-4 max-w-3xl text-sm leading-7 text-ink-muted sm:text-base">
+									{continueBook?.overview ||
+										"Start with one from your recent shelf and Fathom will keep your reading flow in sync."}
+								</p>
+								<div className="mt-5 flex flex-wrap gap-2">
+									<button
+										type="button"
+										onClick={() => {
+											if (continueBook?.id) {
+												setSelectedItemId(continueBook.id);
+												void handleOpenReader();
+											}
+										}}
+										disabled={!continueBook?.id || readerLoading}
+										className="rounded-full bg-moss px-5 py-2 text-sm font-semibold text-abyss disabled:opacity-60"
+									>
+										{readerLoading ? "Opening…" : "Resume reading"}
+									</button>
+									<button
+										type="button"
+										onClick={() => {
+											if (dashboard.libraryBooks[0]) {
+												setSelectedItemId(dashboard.libraryBooks[0].id);
+											}
+										}}
+										className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-ink"
+									>
+										Try something new
+									</button>
+								</div>
+							</div>
+							<div className="mx-auto w-full max-w-72 overflow-hidden rounded-[1.4rem] border border-white/10 bg-black/20">
+								{continueBook?.coverUrl ? (
+									<img
+										src={continueBook.coverUrl}
+										alt={continueBook.title}
+										className="aspect-[4/5] w-full object-cover"
+									/>
+								) : (
+									<div className="flex aspect-[4/5] items-center justify-center bg-gradient-to-br from-moss/15 to-coral/10 px-5 text-center font-display text-2xl text-ink-faint">
+										{continueBook?.title ?? "No cover yet"}
+									</div>
+								)}
+							</div>
+						</div>
+					</section>
 
 					{bulkCoverMessage ? (
 						<div className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-ink-muted">
@@ -560,14 +637,14 @@ function Home() {
 						) : null}
 					</section>
 
-					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+					<div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
 						{stats.map((stat) => (
 							<section
 								key={stat.label}
-								className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-6"
+								className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] p-4 sm:p-5"
 							>
 								<p className="text-sm uppercase tracking-[0.25em] text-ink-faint">{stat.label}</p>
-								<p className="mt-4 font-display text-4xl text-ink">{stat.value}</p>
+								<p className="mt-3 font-display text-2xl text-ink sm:text-3xl">{stat.value}</p>
 							</section>
 						))}
 					</div>
@@ -699,11 +776,10 @@ function Home() {
 										</button>
 										<button
 											type="button"
-											onClick={() => void handleDeleteItem()}
-											disabled={deletingItem}
-											className="rounded-full border border-coral/40 bg-coral/10 px-4 py-2 text-xs font-semibold text-coral disabled:opacity-60"
+											onClick={() => setManageOpen((open) => !open)}
+											className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-ink"
 										>
-											{deletingItem ? "Deleting…" : "Delete"}
+											{manageOpen ? "Close manage" : "Manage"}
 										</button>
 									</div>
 									<p className="mt-2 text-sm uppercase tracking-[0.25em] text-ink-faint">
@@ -745,153 +821,196 @@ function Home() {
 									<div className="mt-6 rounded-3xl border border-white/10 bg-black/15 p-4">
 										<div className="flex flex-wrap items-center justify-between gap-3">
 											<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">
-												Cover actions
+												Library management
 											</p>
 											<button
 												type="button"
-												onClick={() => handleFindCoverOptions(selectedDetail.id)}
-												disabled={remoteImagesLoading || coverApplying !== null}
-												className="rounded-full bg-moss/12 px-3 py-2 text-xs font-semibold text-moss disabled:opacity-60"
+												onClick={() => setManageOpen((open) => !open)}
+												className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-ink"
 											>
-												{remoteImagesLoading
-													? "Finding covers…"
-													: selectedDetail.coverUrl
-														? "Find better cover"
-														: "Find cover"}
+												{manageOpen ? "Hide controls" : "Manage this title"}
 											</button>
 										</div>
-										{remoteImagesError ? (
-											<div className="mt-4 rounded-2xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">
-												{remoteImagesError}
-											</div>
-										) : null}
-										{remoteImages.length > 0 ? (
-											<div className="mt-4 grid gap-3 sm:grid-cols-2">
-												{/* biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Inline rendering keeps candidate-specific UI details colocated. */}
-												{remoteImages.slice(0, 6).map((image) => (
-													<div
-														key={image.url}
-														className="overflow-hidden rounded-3xl border border-white/10 bg-black/20"
-													>
-														<img
-															src={image.thumbnailUrl}
-															alt={`${selectedDetail.title} from ${image.providerName}`}
-															className="aspect-[4/5] w-full object-cover"
-														/>
-														<div className="p-3">
-															<p className="text-sm font-semibold text-ink">{image.providerName}</p>
-															<p className="mt-1 text-xs text-ink-faint">
-																{image.width && image.height
-																	? `${image.width} × ${image.height}`
-																	: "Unknown size"}
-																{image.communityRating
-																	? ` · ${image.communityRating.toFixed(1)} rating`
-																	: ""}
-															</p>
-															<button
-																type="button"
-																onClick={() => handleApplyRemoteCover(selectedDetail.id, image.url)}
-																disabled={coverApplying !== null}
-																className="mt-3 rounded-full bg-moss px-4 py-2 text-xs font-semibold text-abyss disabled:opacity-60"
-															>
-																{coverApplying === image.url ? "Applying…" : "Use this cover"}
-															</button>
-														</div>
+
+										{manageOpen ? (
+											<div className="mt-4 space-y-6">
+												<div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+													<div className="flex flex-wrap items-center justify-between gap-3">
+														<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">
+															Cover actions
+														</p>
+														<button
+															type="button"
+															onClick={() => handleFindCoverOptions(selectedDetail.id)}
+															disabled={remoteImagesLoading || coverApplying !== null}
+															className="rounded-full bg-moss/12 px-3 py-2 text-xs font-semibold text-moss disabled:opacity-60"
+														>
+															{remoteImagesLoading
+																? "Finding covers…"
+																: selectedDetail.coverUrl
+																	? "Find better cover"
+																	: "Find cover"}
+														</button>
 													</div>
-												))}
+													{remoteImagesError ? (
+														<div className="mt-4 rounded-2xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">
+															{remoteImagesError}
+														</div>
+													) : null}
+													{remoteImages.length > 0 ? (
+														<div className="mt-4 grid gap-3 sm:grid-cols-2">
+															{remoteImages.slice(0, 6).map((image) => (
+																<div
+																	key={image.url}
+																	className="overflow-hidden rounded-3xl border border-white/10 bg-black/20"
+																>
+																	<img
+																		src={image.thumbnailUrl}
+																		alt={`${selectedDetail.title} from ${image.providerName}`}
+																		className="aspect-[4/5] w-full object-cover"
+																	/>
+																	<div className="p-3">
+																		<p className="text-sm font-semibold text-ink">
+																			{image.providerName}
+																		</p>
+																		<p className="mt-1 text-xs text-ink-faint">
+																			{image.width && image.height
+																				? `${image.width} × ${image.height}`
+																				: "Unknown size"}
+																			{image.communityRating
+																				? ` · ${image.communityRating.toFixed(1)} rating`
+																				: ""}
+																		</p>
+																		<button
+																			type="button"
+																			onClick={() =>
+																				handleApplyRemoteCover(selectedDetail.id, image.url)
+																			}
+																			disabled={coverApplying !== null}
+																			className="mt-3 rounded-full bg-moss px-4 py-2 text-xs font-semibold text-abyss disabled:opacity-60"
+																		>
+																			{coverApplying === image.url ? "Applying…" : "Use this cover"}
+																		</button>
+																	</div>
+																</div>
+															))}
+														</div>
+													) : null}
+												</div>
+
+												<div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+													<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">
+														Metadata
+													</p>
+													<div className="mt-3 space-y-3">
+														<input
+															value={metadataTitle}
+															onChange={(event) => setMetadataTitle(event.target.value)}
+															placeholder="Title"
+															className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none focus:border-moss/40"
+														/>
+														<input
+															value={metadataYear}
+															onChange={(event) => setMetadataYear(event.target.value)}
+															placeholder="Year"
+															className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none focus:border-moss/40"
+														/>
+														<input
+															value={metadataGenres}
+															onChange={(event) => setMetadataGenres(event.target.value)}
+															placeholder="Genres (comma separated)"
+															className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none focus:border-moss/40"
+														/>
+														<textarea
+															value={metadataOverview}
+															onChange={(event) => setMetadataOverview(event.target.value)}
+															rows={4}
+															placeholder="Overview"
+															className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none focus:border-moss/40"
+														/>
+													</div>
+													<button
+														type="button"
+														onClick={() => void handleSaveMetadata()}
+														disabled={metadataSaving}
+														className="mt-3 rounded-full bg-moss px-4 py-2 text-xs font-semibold text-abyss disabled:opacity-60"
+													>
+														{metadataSaving ? "Saving…" : "Save metadata"}
+													</button>
+												</div>
+
+												<div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+													<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">
+														Collections
+													</p>
+													<div className="mt-3 flex flex-wrap gap-2">
+														<select
+															value={selectedCollectionId}
+															onChange={(event) => setSelectedCollectionId(event.target.value)}
+															className="min-w-[12rem] rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none"
+														>
+															<option value="">Select collection</option>
+															{collectionOptions.map((collection) => (
+																<option key={collection.id} value={collection.id}>
+																	{collection.name}
+																</option>
+															))}
+														</select>
+														<button
+															type="button"
+															onClick={() => void handleAddToCollection()}
+															disabled={collectionActionLoading || !selectedCollectionId}
+															className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-ink disabled:opacity-60"
+														>
+															Add
+														</button>
+														<button
+															type="button"
+															onClick={() => void handleRemoveFromCollection()}
+															disabled={collectionActionLoading || !selectedCollectionId}
+															className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-ink disabled:opacity-60"
+														>
+															Remove
+														</button>
+													</div>
+													<div className="mt-3 flex flex-wrap gap-2">
+														<input
+															value={newCollectionName}
+															onChange={(event) => setNewCollectionName(event.target.value)}
+															placeholder="New collection name"
+															className="min-w-[12rem] flex-1 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none"
+														/>
+														<button
+															type="button"
+															onClick={() => void handleCreateCollection()}
+															disabled={collectionActionLoading || !newCollectionName.trim()}
+															className="rounded-full bg-moss px-4 py-2 text-xs font-semibold text-abyss disabled:opacity-60"
+														>
+															Create + add
+														</button>
+													</div>
+												</div>
+
+												<div className="rounded-3xl border border-coral/30 bg-coral/10 p-4">
+													<p className="text-xs uppercase tracking-[0.25em] text-coral/90">
+														Danger zone
+													</p>
+													<button
+														type="button"
+														onClick={() => void handleDeleteItem()}
+														disabled={deletingItem}
+														className="mt-3 rounded-full border border-coral/40 bg-coral/20 px-4 py-2 text-xs font-semibold text-coral disabled:opacity-60"
+													>
+														{deletingItem ? "Deleting…" : "Delete from library"}
+													</button>
+												</div>
 											</div>
-										) : null}
-									</div>
-
-									<div className="mt-6 rounded-3xl border border-white/10 bg-black/15 p-4">
-										<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">Metadata</p>
-										<div className="mt-3 space-y-3">
-											<input
-												value={metadataTitle}
-												onChange={(event) => setMetadataTitle(event.target.value)}
-												placeholder="Title"
-												className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none focus:border-moss/40"
-											/>
-											<input
-												value={metadataYear}
-												onChange={(event) => setMetadataYear(event.target.value)}
-												placeholder="Year"
-												className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none focus:border-moss/40"
-											/>
-											<input
-												value={metadataGenres}
-												onChange={(event) => setMetadataGenres(event.target.value)}
-												placeholder="Genres (comma separated)"
-												className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none focus:border-moss/40"
-											/>
-											<textarea
-												value={metadataOverview}
-												onChange={(event) => setMetadataOverview(event.target.value)}
-												rows={4}
-												placeholder="Overview"
-												className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none focus:border-moss/40"
-											/>
-										</div>
-										<button
-											type="button"
-											onClick={() => void handleSaveMetadata()}
-											disabled={metadataSaving}
-											className="mt-3 rounded-full bg-moss px-4 py-2 text-xs font-semibold text-abyss disabled:opacity-60"
-										>
-											{metadataSaving ? "Saving…" : "Save metadata"}
-										</button>
-									</div>
-
-									<div className="mt-6 rounded-3xl border border-white/10 bg-black/15 p-4">
-										<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">
-											Collections
-										</p>
-										<div className="mt-3 flex flex-wrap gap-2">
-											<select
-												value={selectedCollectionId}
-												onChange={(event) => setSelectedCollectionId(event.target.value)}
-												className="min-w-[12rem] rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none"
-											>
-												<option value="">Select collection</option>
-												{collectionOptions.map((collection) => (
-													<option key={collection.id} value={collection.id}>
-														{collection.name}
-													</option>
-												))}
-											</select>
-											<button
-												type="button"
-												onClick={() => void handleAddToCollection()}
-												disabled={collectionActionLoading || !selectedCollectionId}
-												className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-ink disabled:opacity-60"
-											>
-												Add
-											</button>
-											<button
-												type="button"
-												onClick={() => void handleRemoveFromCollection()}
-												disabled={collectionActionLoading || !selectedCollectionId}
-												className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-ink disabled:opacity-60"
-											>
-												Remove
-											</button>
-										</div>
-										<div className="mt-3 flex flex-wrap gap-2">
-											<input
-												value={newCollectionName}
-												onChange={(event) => setNewCollectionName(event.target.value)}
-												placeholder="New collection name"
-												className="min-w-[12rem] flex-1 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-ink outline-none"
-											/>
-											<button
-												type="button"
-												onClick={() => void handleCreateCollection()}
-												disabled={collectionActionLoading || !newCollectionName.trim()}
-												className="rounded-full bg-moss px-4 py-2 text-xs font-semibold text-abyss disabled:opacity-60"
-											>
-												Create + add
-											</button>
-										</div>
+										) : (
+											<p className="mt-4 text-sm text-ink-muted">
+												Management controls are hidden. Open this panel to edit metadata,
+												collections, or covers.
+											</p>
+										)}
 									</div>
 
 									<div className="mt-6 rounded-3xl border border-white/10 bg-black/15 p-4">
@@ -1012,56 +1131,60 @@ function ShelfSection(props: {
 			<div className="flex items-center justify-between gap-4">
 				<div>
 					<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">{props.title}</p>
-					<h2 className="mt-2 font-display text-3xl">{props.subtitle}</h2>
+					<h2 className="mt-2 font-display text-2xl sm:text-3xl">{props.subtitle}</h2>
 				</div>
 				<div className="rounded-full bg-white/[0.05] px-3 py-1 text-sm text-ink-muted">
 					{props.items.length} titles
 				</div>
 			</div>
 
-			<div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-				{props.items.length > 0 ? (
-					props.items.map((item) => (
-						<button
-							key={item.id}
-							type="button"
-							onClick={() => props.onSelect(item.id)}
-							className={`overflow-hidden rounded-[1.5rem] border bg-black/15 text-left transition ${
-								props.selectedItemId === item.id
-									? "border-moss/40 bg-moss/8"
-									: "border-white/10 hover:border-white/20"
-							}`}
-						>
-							<div className="aspect-[4/5] bg-black/25">
-								{item.coverUrl ? (
-									<img
-										src={item.coverUrl}
-										alt={item.title}
-										className="h-full w-full object-cover"
-									/>
-								) : (
-									<div className="flex h-full items-center justify-center bg-gradient-to-br from-moss/15 to-coral/10 px-4 text-center font-display text-2xl text-ink-faint">
+			<div className="mt-6 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+				<div className="flex gap-4 sm:gap-5">
+					{props.items.length > 0 ? (
+						props.items.map((item) => (
+							<button
+								key={item.id}
+								type="button"
+								onClick={() => props.onSelect(item.id)}
+								className={`w-[12.5rem] shrink-0 overflow-hidden rounded-[1.4rem] border bg-black/15 text-left transition sm:w-[14rem] ${
+									props.selectedItemId === item.id
+										? "border-moss/40 bg-moss/8"
+										: "border-white/10 hover:border-white/20"
+								}`}
+							>
+								<div className="aspect-[4/5] bg-black/25">
+									{item.coverUrl ? (
+										<img
+											src={item.coverUrl}
+											alt={item.title}
+											className="h-full w-full object-cover"
+										/>
+									) : (
+										<div className="flex h-full items-center justify-center bg-gradient-to-br from-moss/15 to-coral/10 px-4 text-center font-display text-2xl text-ink-faint">
+											{item.title}
+										</div>
+									)}
+								</div>
+								<div className="p-4">
+									<h3 className="line-clamp-2 text-base font-semibold text-ink sm:text-lg">
 										{item.title}
-									</div>
-								)}
-							</div>
-							<div className="p-4">
-								<h3 className="line-clamp-2 text-lg font-semibold text-ink">{item.title}</h3>
-								<p className="mt-2 text-xs uppercase tracking-[0.25em] text-ink-faint">
-									{item.type}
-									{item.year ? ` · ${item.year}` : ""}
-								</p>
-								<p className="mt-3 line-clamp-3 text-sm leading-6 text-ink-muted">
-									{item.overview || "No overview available yet."}
-								</p>
-							</div>
-						</button>
-					))
-				) : (
-					<div className="rounded-3xl border border-dashed border-white/10 bg-black/10 p-6 text-sm text-ink-muted">
-						No titles yet in this shelf.
-					</div>
-				)}
+									</h3>
+									<p className="mt-2 text-xs uppercase tracking-[0.25em] text-ink-faint">
+										{item.type}
+										{item.year ? ` · ${item.year}` : ""}
+									</p>
+									<p className="mt-3 line-clamp-3 text-xs leading-6 text-ink-muted sm:text-sm">
+										{item.overview || "No overview available yet."}
+									</p>
+								</div>
+							</button>
+						))
+					) : (
+						<div className="rounded-3xl border border-dashed border-white/10 bg-black/10 p-6 text-sm text-ink-muted">
+							No titles yet in this shelf.
+						</div>
+					)}
+				</div>
 			</div>
 		</section>
 	);
