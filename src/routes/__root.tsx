@@ -1,9 +1,4 @@
-import {
-	createRootRoute,
-	HeadContent,
-	Outlet,
-	Scripts,
-} from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import "#/styles.css";
 
@@ -15,8 +10,7 @@ export const Route = createRootRoute({
 			{ title: "Fathom" },
 			{
 				name: "description",
-				content:
-					"Modern self-hosted reading room for books, manga, comics, and PDFs in Jellyfin.",
+				content: "Modern self-hosted reading room for books, manga, comics, and PDFs in Jellyfin.",
 			},
 		],
 	}),

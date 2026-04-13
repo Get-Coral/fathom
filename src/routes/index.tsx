@@ -29,28 +29,19 @@ export const Route = createFileRoute("/")({
 
 function Home() {
 	const initialDashboard = Route.useLoaderData();
-	const [dashboard, setDashboard] =
-		useState<FathomDashboardData>(initialDashboard);
+	const [dashboard, setDashboard] = useState<FathomDashboardData>(initialDashboard);
 	const firstBookId =
 		initialDashboard.featured?.id ??
 		initialDashboard.recentBooks[0]?.id ??
 		initialDashboard.libraryBooks[0]?.id ??
 		null;
-	const [selectedItemId, setSelectedItemId] = useState<string | null>(
-		firstBookId,
-	);
-	const [selectedDetail, setSelectedDetail] = useState<FathomBookDetail | null>(
-		null,
-	);
+	const [selectedItemId, setSelectedItemId] = useState<string | null>(firstBookId);
+	const [selectedDetail, setSelectedDetail] = useState<FathomBookDetail | null>(null);
 	const [detailLoading, setDetailLoading] = useState(false);
 	const [detailError, setDetailError] = useState<string | null>(null);
-	const [remoteImages, setRemoteImages] = useState<
-		FathomRemoteImageCandidate[]
-	>([]);
+	const [remoteImages, setRemoteImages] = useState<FathomRemoteImageCandidate[]>([]);
 	const [remoteImagesLoading, setRemoteImagesLoading] = useState(false);
-	const [remoteImagesError, setRemoteImagesError] = useState<string | null>(
-		null,
-	);
+	const [remoteImagesError, setRemoteImagesError] = useState<string | null>(null);
 	const [coverApplying, setCoverApplying] = useState<string | null>(null);
 
 	async function reloadDashboard() {
@@ -83,9 +74,7 @@ function Home() {
 			} catch (loadError) {
 				if (!cancelled) {
 					setDetailError(
-						loadError instanceof Error
-							? loadError.message
-							: "Could not load the title details.",
+						loadError instanceof Error ? loadError.message : "Could not load the title details.",
 					);
 				}
 			} finally {
@@ -110,9 +99,7 @@ function Home() {
 			setRemoteImages(images);
 		} catch (loadError) {
 			setRemoteImagesError(
-				loadError instanceof Error
-					? loadError.message
-					: "Could not fetch remote cover options.",
+				loadError instanceof Error ? loadError.message : "Could not fetch remote cover options.",
 			);
 		} finally {
 			setRemoteImagesLoading(false);
@@ -154,16 +141,13 @@ function Home() {
 			<div className="mx-auto max-w-[96rem]">
 				<div className="mb-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
 					<div>
-						<p className="text-xs font-semibold uppercase tracking-[0.35em] text-moss">
-							Fathom
-						</p>
+						<p className="text-xs font-semibold uppercase tracking-[0.35em] text-moss">Fathom</p>
 						<h1 className="mt-3 max-w-4xl font-display text-5xl leading-none text-ink sm:text-6xl">
 							Your reading room from Jellyfin
 						</h1>
 						<p className="mt-4 max-w-3xl text-lg leading-8 text-ink-muted">
-							Browse books, manga, comics, and reading collections without the
-							usual self-hosted rough edges. Fathom is the calm, cover-first
-							layer for your NAS library.
+							Browse books, manga, comics, and reading collections without the usual self-hosted
+							rough edges. Fathom is the calm, cover-first layer for your NAS library.
 						</p>
 					</div>
 
@@ -183,12 +167,8 @@ function Home() {
 							key={stat.label}
 							className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-6"
 						>
-							<p className="text-sm uppercase tracking-[0.25em] text-ink-faint">
-								{stat.label}
-							</p>
-							<p className="mt-4 font-display text-4xl text-ink">
-								{stat.value}
-							</p>
+							<p className="text-sm uppercase tracking-[0.25em] text-ink-faint">{stat.label}</p>
+							<p className="mt-4 font-display text-4xl text-ink">{stat.value}</p>
 						</section>
 					))}
 				</div>
@@ -197,9 +177,7 @@ function Home() {
 					<section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 xl:p-7">
 						<div className="flex items-center justify-between gap-4">
 							<div>
-								<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">
-									Featured
-								</p>
+								<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">Featured</p>
 								<h2 className="mt-2 font-display text-3xl">Start here</h2>
 							</div>
 							<div className="rounded-full bg-moss/12 px-3 py-1 text-sm text-moss">
@@ -232,9 +210,7 @@ function Home() {
 									</h3>
 									<p className="mt-3 text-sm uppercase tracking-[0.25em] text-ink-faint">
 										{dashboard.featured.type}
-										{dashboard.featured.year
-											? ` · ${dashboard.featured.year}`
-											: ""}
+										{dashboard.featured.year ? ` · ${dashboard.featured.year}` : ""}
 									</p>
 									<p className="mt-5 max-w-2xl text-base leading-8 text-ink-muted">
 										{dashboard.featured.overview ||
@@ -266,9 +242,7 @@ function Home() {
 					</section>
 
 					<aside className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 xl:p-7">
-						<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">
-							Reading detail
-						</p>
+						<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">Reading detail</p>
 						{detailLoading ? (
 							<div className="mt-6 space-y-4 animate-pulse">
 								<div className="h-64 rounded-3xl bg-white/5" />
@@ -294,19 +268,14 @@ function Home() {
 										</div>
 									)}
 								</div>
-								<h2 className="mt-6 font-display text-3xl text-ink">
-									{selectedDetail.title}
-								</h2>
+								<h2 className="mt-6 font-display text-3xl text-ink">{selectedDetail.title}</h2>
 								<p className="mt-2 text-sm uppercase tracking-[0.25em] text-ink-faint">
 									{selectedDetail.type}
 									{selectedDetail.year ? ` · ${selectedDetail.year}` : ""}
-									{selectedDetail.publisher
-										? ` · ${selectedDetail.publisher}`
-										: ""}
+									{selectedDetail.publisher ? ` · ${selectedDetail.publisher}` : ""}
 								</p>
 								<p className="mt-5 text-sm leading-8 text-ink-muted">
-									{selectedDetail.overview ||
-										"No overview available for this title yet."}
+									{selectedDetail.overview || "No overview available for this title yet."}
 								</p>
 
 								<div className="mt-5 flex flex-wrap gap-2">
@@ -362,9 +331,7 @@ function Home() {
 														className="aspect-[4/5] w-full object-cover"
 													/>
 													<div className="p-3">
-														<p className="text-sm font-semibold text-ink">
-															{image.providerName}
-														</p>
+														<p className="text-sm font-semibold text-ink">{image.providerName}</p>
 														<p className="mt-1 text-xs text-ink-faint">
 															{image.width && image.height
 																? `${image.width} × ${image.height}`
@@ -375,18 +342,11 @@ function Home() {
 														</p>
 														<button
 															type="button"
-															onClick={() =>
-																handleApplyRemoteCover(
-																	selectedDetail.id,
-																	image.url,
-																)
-															}
+															onClick={() => handleApplyRemoteCover(selectedDetail.id, image.url)}
 															disabled={coverApplying !== null}
 															className="mt-3 rounded-full bg-moss px-4 py-2 text-xs font-semibold text-abyss disabled:opacity-60"
 														>
-															{coverApplying === image.url
-																? "Applying…"
-																: "Use this cover"}
+															{coverApplying === image.url ? "Applying…" : "Use this cover"}
 														</button>
 													</div>
 												</div>
@@ -396,9 +356,7 @@ function Home() {
 								</div>
 
 								<div className="mt-6 rounded-3xl border border-white/10 bg-black/15 p-4">
-									<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">
-										Contributors
-									</p>
+									<p className="text-xs uppercase tracking-[0.25em] text-ink-faint">Contributors</p>
 									<div className="mt-3 space-y-2">
 										{selectedDetail.people.length > 0 ? (
 											selectedDetail.people.slice(0, 6).map((person) => (
@@ -407,9 +365,7 @@ function Home() {
 													className="flex items-center justify-between gap-3 text-sm text-ink-muted"
 												>
 													<span className="text-ink">{person.name}</span>
-													<span>
-														{person.role || person.type || "Contributor"}
-													</span>
+													<span>{person.role || person.type || "Contributor"}</span>
 												</div>
 											))
 										) : (
@@ -455,9 +411,7 @@ function Home() {
 				<section className="mt-6 rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 xl:p-7">
 					<div className="flex items-center justify-between gap-4">
 						<div>
-							<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">
-								Libraries
-							</p>
+							<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">Libraries</p>
 							<h2 className="mt-2 font-display text-3xl">Virtual folders</h2>
 						</div>
 						<div className="rounded-full bg-moss/12 px-3 py-1 text-sm text-moss">
@@ -471,9 +425,7 @@ function Home() {
 								key={folder.ItemId}
 								className="rounded-3xl border border-white/10 bg-black/15 p-5"
 							>
-								<h3 className="text-xl font-semibold text-ink">
-									{folder.Name}
-								</h3>
+								<h3 className="text-xl font-semibold text-ink">{folder.Name}</h3>
 								<p className="mt-2 text-sm uppercase tracking-[0.25em] text-ink-faint">
 									{folder.CollectionType || "Mixed"}
 								</p>
@@ -507,9 +459,7 @@ function ShelfSection(props: {
 		<section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 xl:p-7">
 			<div className="flex items-center justify-between gap-4">
 				<div>
-					<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">
-						{props.title}
-					</p>
+					<p className="text-xs uppercase tracking-[0.3em] text-ink-faint">{props.title}</p>
 					<h2 className="mt-2 font-display text-3xl">{props.subtitle}</h2>
 				</div>
 				<div className="rounded-full bg-white/[0.05] px-3 py-1 text-sm text-ink-muted">
@@ -544,9 +494,7 @@ function ShelfSection(props: {
 								)}
 							</div>
 							<div className="p-4">
-								<h3 className="line-clamp-2 text-lg font-semibold text-ink">
-									{item.title}
-								</h3>
+								<h3 className="line-clamp-2 text-lg font-semibold text-ink">{item.title}</h3>
 								<p className="mt-2 text-xs uppercase tracking-[0.25em] text-ink-faint">
 									{item.type}
 									{item.year ? ` · ${item.year}` : ""}

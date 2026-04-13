@@ -53,15 +53,12 @@ function SetupPage() {
 						Fathom Setup
 					</p>
 					<h1 className="mt-4 font-display text-5xl leading-none">
-						{summary.configured
-							? "Edit reading connection"
-							: "Connect Fathom to Jellyfin"}
+						{summary.configured ? "Edit reading connection" : "Connect Fathom to Jellyfin"}
 					</h1>
 					<p className="mt-6 text-lg leading-8 text-ink-muted">
-						Fathom follows the same local-first setup model as Aurora and
-						Librarian. If `JELLYFIN_*` env vars are already present, the app can
-						skip homepage onboarding while this page still lets you inspect the
-						active values and save a local SQLite override.
+						Fathom follows the same local-first setup model as Aurora and Librarian. If `JELLYFIN_*`
+						env vars are already present, the app can skip homepage onboarding while this page still
+						lets you inspect the active values and save a local SQLite override.
 					</p>
 
 					<div className="mt-10 space-y-4">
@@ -90,10 +87,7 @@ function SetupPage() {
 				<section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
 					<form className="space-y-5" onSubmit={handleSubmit}>
 						<div>
-							<label
-								htmlFor="setup-url"
-								className="mb-2 block text-sm font-medium text-ink"
-							>
+							<label htmlFor="setup-url" className="mb-2 block text-sm font-medium text-ink">
 								Jellyfin URL
 							</label>
 							<input
@@ -106,10 +100,7 @@ function SetupPage() {
 						</div>
 
 						<div>
-							<label
-								htmlFor="setup-api-key"
-								className="mb-2 block text-sm font-medium text-ink"
-							>
+							<label htmlFor="setup-api-key" className="mb-2 block text-sm font-medium text-ink">
 								API key
 							</label>
 							<input
@@ -122,10 +113,7 @@ function SetupPage() {
 						</div>
 
 						<div>
-							<label
-								htmlFor="setup-user-id"
-								className="mb-2 block text-sm font-medium text-ink"
-							>
+							<label htmlFor="setup-user-id" className="mb-2 block text-sm font-medium text-ink">
 								User ID
 							</label>
 							<input
@@ -139,10 +127,7 @@ function SetupPage() {
 
 						<div className="grid gap-5 md:grid-cols-2">
 							<div>
-								<label
-									htmlFor="setup-username"
-									className="mb-2 block text-sm font-medium text-ink"
-								>
+								<label htmlFor="setup-username" className="mb-2 block text-sm font-medium text-ink">
 									Username
 								</label>
 								<input
@@ -155,10 +140,7 @@ function SetupPage() {
 							</div>
 
 							<div>
-								<label
-									htmlFor="setup-password"
-									className="mb-2 block text-sm font-medium text-ink"
-								>
+								<label htmlFor="setup-password" className="mb-2 block text-sm font-medium text-ink">
 									Password
 								</label>
 								<input

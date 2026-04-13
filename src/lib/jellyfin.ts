@@ -66,9 +66,7 @@ function getRequiredSettings() {
 	const settings = getEffectiveJellyfinSettings();
 
 	if (!settings) {
-		throw new Error(
-			"Fathom is not configured yet. Visit /setup to connect Jellyfin.",
-		);
+		throw new Error("Fathom is not configured yet. Visit /setup to connect Jellyfin.");
 	}
 
 	return settings;
@@ -100,9 +98,7 @@ function toBookCard(
 		year: item.ProductionYear,
 		overview: item.Overview?.trim() ?? "",
 		genres: item.GenreItems?.map((genre) => genre.Name) ?? [],
-		coverUrl: item.ImageTags?.Primary
-			? imageUrl(client, item.Id, "Primary", 520)
-			: undefined,
+		coverUrl: item.ImageTags?.Primary ? imageUrl(client, item.Id, "Primary", 520) : undefined,
 	};
 }
 
@@ -146,18 +142,14 @@ export async function fetchDashboardData(): Promise<FathomDashboardData> {
 			id: currentUser.Id,
 			name: currentUser.Name,
 		},
-		featured: recentBooks.Items[0]
-			? toBookCard(client, recentBooks.Items[0])
-			: null,
+		featured: recentBooks.Items[0] ? toBookCard(client, recentBooks.Items[0]) : null,
 		recentBooks: recentBooks.Items.map((item) => toBookCard(client, item)),
 		libraryBooks: libraryBooks.Items.map((item) => toBookCard(client, item)),
 		collections: collections.Items.map((item) => toBookCard(client, item)),
 	};
 }
 
-export async function fetchBookDetail(
-	itemId: string,
-): Promise<FathomBookDetail> {
+export async function fetchBookDetail(itemId: string): Promise<FathomBookDetail> {
 	const client = createFathomClient();
 	const item = await getItem(client, itemId);
 
@@ -174,9 +166,7 @@ export async function fetchBookDetail(
 	};
 }
 
-function toRemoteImageCandidate(
-	image: JellyfinRemoteImageInfo,
-): FathomRemoteImageCandidate | null {
+function toRemoteImageCandidate(image: JellyfinRemoteImageInfo): FathomRemoteImageCandidate | null {
 	const url = image.Url?.trim();
 	if (!url) return null;
 

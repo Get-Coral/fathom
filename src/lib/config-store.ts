@@ -42,9 +42,7 @@ function getDatabase() {
 }
 
 function getSetting(key: string) {
-	const statement = getDatabase().prepare(
-		"SELECT value FROM app_settings WHERE key = ?",
-	);
+	const statement = getDatabase().prepare("SELECT value FROM app_settings WHERE key = ?");
 	const row = statement.get(key) as { value?: string } | undefined;
 	return row?.value;
 }
@@ -67,9 +65,7 @@ function normalizeValue(value?: string) {
 	return trimmed ? trimmed : undefined;
 }
 
-function normalizeSettings(
-	settings: Partial<JellyfinSettings>,
-): Partial<JellyfinSettings> {
+function normalizeSettings(settings: Partial<JellyfinSettings>): Partial<JellyfinSettings> {
 	return {
 		url: normalizeValue(settings.url),
 		apiKey: normalizeValue(settings.apiKey),
