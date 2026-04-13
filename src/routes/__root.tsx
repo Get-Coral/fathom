@@ -1,5 +1,6 @@
 import { createRootRoute, HeadContent, Outlet, Scripts, useRouter } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { AppBootstrap } from "#/components/AppBootstrap";
 import "#/styles.css";
 
 export const Route = createRootRoute({
@@ -7,11 +8,19 @@ export const Route = createRootRoute({
 		meta: [
 			{ charSet: "utf-8" },
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
+			{ name: "theme-color", content: "#050d14" },
+			{ name: "apple-mobile-web-app-capable", content: "yes" },
+			{ name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
 			{ title: "Fathom" },
 			{
 				name: "description",
 				content: "Modern self-hosted reading room for books, manga, comics, and PDFs in Jellyfin.",
 			},
+		],
+		links: [
+			{ rel: "manifest", href: "/manifest.json" },
+			{ rel: "icon", href: "/favicon.ico" },
+			{ rel: "apple-touch-icon", href: "/logo192.png" },
 		],
 	}),
 	component: RootComponent,
@@ -33,6 +42,7 @@ function RootDocument({ children }: { children: ReactNode }) {
 				<HeadContent />
 			</head>
 			<body>
+				<AppBootstrap />
 				{children}
 				<Scripts />
 			</body>

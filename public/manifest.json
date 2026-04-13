@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "short_name": "Fathom",
+  "name": "Fathom for Jellyfin",
+  "description": "A modern self-hosted reading room for books, manga, comics, and PDFs in Jellyfin.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "any",
+  "categories": ["books", "utilities", "entertainment"],
+  "theme_color": "#050d14",
+  "background_color": "#050d14"
+}

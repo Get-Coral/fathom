@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
 	FathomBookCard,
 	FathomBookDetail,
@@ -8,6 +8,7 @@ import type {
 } from "#/lib/jellyfin";
 import {
 	applyRemoteCover,
+	autofillMissingCovers,
 	fetchBookDetail,
 	fetchDashboard,
 	fetchRemoteCoverOptions,
@@ -48,6 +49,8 @@ function Home() {
 	const [remoteImagesLoading, setRemoteImagesLoading] = useState(false);
 	const [remoteImagesError, setRemoteImagesError] = useState<string | null>(null);
 	const [coverApplying, setCoverApplying] = useState<string | null>(null);
+	const [bulkCoverLoading, setBulkCoverLoading] = useState(false);
+	const [bulkCoverMessage, setBulkCoverMessage] = useState<string | null>(null);
 
 	async function reloadDashboard() {
 		const nextDashboard = await fetchDashboard();
@@ -97,7 +100,7 @@ function Home() {
 		};
 	}, [selectedItemId]);
 
-	async function handleFindCoverOptions(itemId: string) {
+	const handleFindCoverOptions = useCallback(async (itemId: string) => {
 		try {
 			setRemoteImagesLoading(true);
 			setRemoteImagesError(null);
@@ -110,7 +113,7 @@ function Home() {
 		} finally {
 			setRemoteImagesLoading(false);
 		}
-	}
+	}, []);
 
 	async function handleApplyRemoteCover(itemId: string, imageUrl: string) {
 		try {
@@ -131,6 +134,42 @@ function Home() {
 			setCoverApplying(null);
 		}
 	}
+
+	async function handleAutofillMissingCovers() {
+		try {
+			setBulkCoverLoading(true);
+			setBulkCoverMessage(null);
+			const result = await autofillMissingCovers({ data: { limit: 12 } });
+			await reloadDashboard();
+			if (selectedItemId) {
+				const detail = await fetchBookDetail({ data: { itemId: selectedItemId } });
+				setSelectedDetail(detail);
+			}
+
+			setBulkCoverMessage(
+				`Checked ${result.processed} titles, updated ${result.updated} cover${result.updated === 1 ? "" : "s"}${result.failures > 0 ? `, ${result.failures} failed` : ""}.`,
+			);
+		} catch (error) {
+			setBulkCoverMessage(
+				error instanceof Error ? error.message : "Could not auto-fill missing covers right now.",
+			);
+		} finally {
+			setBulkCoverLoading(false);
+		}
+	}
+
+	useEffect(() => {
+		if (
+			!selectedDetail ||
+			selectedDetail.coverUrl ||
+			remoteImagesLoading ||
+			remoteImages.length > 0
+		) {
+			return;
+		}
+
+		void handleFindCoverOptions(selectedDetail.id);
+	}, [handleFindCoverOptions, selectedDetail, remoteImagesLoading, remoteImages.length]);
 
 	const stats = [
 		{
@@ -158,6 +197,14 @@ function Home() {
 					</div>
 
 					<div className="flex flex-wrap gap-3">
+						<button
+							type="button"
+							onClick={handleAutofillMissingCovers}
+							disabled={bulkCoverLoading}
+							className="rounded-full border border-moss/40 bg-moss/12 px-5 py-3 text-sm font-semibold text-moss disabled:opacity-60"
+						>
+							{bulkCoverLoading ? "Finding covers…" : "Auto-fill missing covers"}
+						</button>
 						<Link
 							to="/setup"
 							search={{}}
@@ -167,6 +214,12 @@ function Home() {
 						</Link>
 					</div>
 				</div>
+
+				{bulkCoverMessage ? (
+					<div className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-ink-muted">
+						{bulkCoverMessage}
+					</div>
+				) : null}
 
 				<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 					{stats.map((stat) => (

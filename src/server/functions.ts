@@ -56,3 +56,10 @@ export const applyRemoteCover = createServerFn({ method: "POST" })
 		await applyCover(data.itemId, data.imageUrl);
 		return { ok: true };
 	});
+
+export const autofillMissingCovers = createServerFn({ method: "POST" })
+	.inputValidator((input: { limit?: number } | undefined) => input)
+	.handler(async ({ data }) => {
+		const { autofillMissingCovers: runAutofill } = await import("../lib/jellyfin");
+		return runAutofill(data?.limit ?? 10);
+	});

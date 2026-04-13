@@ -62,6 +62,12 @@ export interface FathomRemoteImageCandidate {
 	voteCount?: number;
 }
 
+export interface FathomAutoCoverResult {
+	processed: number;
+	updated: number;
+	failures: number;
+}
+
 function getRequiredSettings() {
 	const settings = getEffectiveJellyfinSettings();
 
@@ -91,6 +97,14 @@ function toBookCard(
 	client: ReturnType<typeof createClient>,
 	item: Awaited<ReturnType<typeof getItem>>,
 ): FathomBookCard {
+	const coverType = item.ImageTags?.Primary
+		? "Primary"
+		: item.ImageTags?.Thumb
+			? "Thumb"
+			: item.ImageTags?.Backdrop
+				? "Backdrop"
+				: null;
+
 	return {
 		id: item.Id,
 		title: item.Name,
@@ -98,7 +112,7 @@ function toBookCard(
 		year: item.ProductionYear,
 		overview: item.Overview?.trim() ?? "",
 		genres: item.GenreItems?.map((genre) => genre.Name) ?? [],
-		coverUrl: item.ImageTags?.Primary ? imageUrl(client, item.Id, "Primary", 520) : undefined,
+		coverUrl: coverType ? imageUrl(client, item.Id, coverType, 520) : undefined,
 	};
 }
 
@@ -195,4 +209,67 @@ export async function fetchRemoteCoverOptions(
 export async function applyRemoteCover(itemId: string, imageUrl: string) {
 	const client = createFathomClient();
 	await downloadRemoteImage(client, itemId, imageUrl, "Primary");
+}
+
+function firstRemoteImageUrl(images: JellyfinRemoteImageInfo[]) {
+	for (const image of images) {
+		const url = image.Url?.trim();
+		if (url) {
+			return url;
+		}
+	}
+
+	return null;
+}
+
+export async function autofillMissingCovers(limit = 10): Promise<FathomAutoCoverResult> {
+	const client = createFathomClient();
+	const [recentBooks, libraryBooks] = await Promise.all([
+		getLibraryItems(client, "Book", {
+			limit: 48,
+			sortBy: "DateCreated",
+			sortOrder: "Descending",
+		}),
+		getLibraryItems(client, "Book", {
+			limit: 48,
+			sortBy: "SortName",
+			sortOrder: "Ascending",
+		}),
+	]);
+
+	const itemsById = new Map<string, (typeof recentBooks.Items)[number]>();
+	for (const item of [...recentBooks.Items, ...libraryBooks.Items]) {
+		if (item.ImageTags?.Primary || item.ImageTags?.Thumb || item.ImageTags?.Backdrop) {
+			continue;
+		}
+
+		if (!itemsById.has(item.Id)) {
+			itemsById.set(item.Id, item);
+		}
+	}
+
+	const targets = [...itemsById.values()].slice(0, Math.max(1, limit));
+	let updated = 0;
+	let failures = 0;
+
+	for (const item of targets) {
+		try {
+			const images = await getRemoteImages(client, item.Id, "Primary");
+			const selectedUrl = firstRemoteImageUrl(images);
+			if (!selectedUrl) {
+				continue;
+			}
+
+			await downloadRemoteImage(client, item.Id, selectedUrl, "Primary");
+			updated += 1;
+		} catch {
+			failures += 1;
+		}
+	}
+
+	return {
+		processed: targets.length,
+		updated,
+		failures,
+	};
 }
