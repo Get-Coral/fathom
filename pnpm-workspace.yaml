@@ -1,0 +1,9 @@
+allowBuilds:
+  core-js: false
+  es5-ext: false
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@get-coral/jellyfin'
+  - '@get-coral/ui'
+  - '@get-coral/biome-config'
+  - '@get-coral/tsconfig'
