@@ -51,6 +51,26 @@ Override the data directory with:
 FATHOM_DATA_DIR=/path/to/data
 ```
 
+## Docker
+
+The published image is [`getcoral/fathom`](https://hub.docker.com/r/getcoral/fathom):
+
+```bash
+docker run -p 3000:3000 \
+  -e JELLYFIN_URL=http://your-nas:8096 \
+  -e JELLYFIN_API_KEY=your-key \
+  -e JELLYFIN_USER_ID=your-user-id \
+  getcoral/fathom:latest
+```
+
+Or build it yourself:
+
+```bash
+docker build -t fathom .
+```
+
+Published automatically to [`getcoral/fathom`](https://hub.docker.com/r/getcoral/fathom) on Docker Hub on every release via GitHub Actions.
+
 ## Scripts
 
 ```bash
@@ -64,4 +84,4 @@ pnpm check
 
 ## Part Of Coral
 
-Fathom is part of the [Coral](https://getcoral.dev) ecosystem. Shared Jellyfin API work belongs in [`/Users/elian/Documents/code/coral/Jellyfin`](/Users/elian/Documents/code/coral/Jellyfin), while Fathom-specific reading workflows stay in this repo.
+Fathom is part of the [Coral](https://getcoral.dev) ecosystem. Shared Jellyfin API work belongs in [`@get-coral/jellyfin`](https://github.com/Get-Coral/Jellyfin), while Fathom-specific reading workflows stay in this repo.
