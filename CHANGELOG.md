@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1](https://github.com/Get-Coral/fathom/compare/v1.0.0...v1.0.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* drop the Docker Hub categories payload, which the API ignores ([#27](https://github.com/Get-Coral/fathom/issues/27)) ([a5ec400](https://github.com/Get-Coral/fathom/commit/a5ec4008b47b7c74faafade52b329657e4eb7508))
+* pin pnpm explicitly so release-please cannot break the build ([c0b9804](https://github.com/Get-Coral/fathom/commit/c0b98041243a407a8452005f7389b76e925cd710))
+
 ## 1.0.0 (2026-04-13)
 
 
